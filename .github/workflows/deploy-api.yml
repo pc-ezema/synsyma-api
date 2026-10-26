@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [dev, prod]
-    paths:
-      - 'api/**'
-      - '.github/workflows/deploy-api.yml'
 
 jobs:
   deploy:
@@ -22,7 +19,6 @@ jobs:
           extensions: mbstring, pdo_mysql, bcmath, intl
 
       - name: Install dependencies
-        working-directory: api
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
       - name: Setup SSH
@@ -35,10 +31,10 @@ jobs:
       - name: Upload files
         run: |
           rsync -az --delete \
-            --exclude='.env' --exclude='.git' --exclude='storage/' \
-            --exclude='tests/' --exclude='node_modules/' \
+            --exclude='.env' --exclude='.git' --exclude='.github' \
+            --exclude='storage/' --exclude='tests/' --exclude='node_modules/' \
             -e "ssh -p ${{ secrets.SSH_PORT }}" \
-            api/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ vars.API_PATH }}/
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ vars.API_PATH }}/
 
       - name: Post-deploy commands
         run: |
@@ -47,10 +43,9 @@ jobs:
             PHP=/opt/cpanel/ea-php83/root/usr/bin/php
             $PHP artisan migrate --force
             $PHP artisan storage:link || true
+            $PHP artisan optimize:clear
             $PHP artisan config:cache
             $PHP artisan route:cache
             $PHP artisan view:cache
-            $PHP artisan optimize:clear
             $PHP artisan queue:restart || true
           EOF
-          
