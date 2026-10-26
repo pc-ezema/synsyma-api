@@ -1,0 +1,51 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [dev, prod]
+    paths: ['api/**']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'prod' && 'production' || 'development' }}
+    concurrency: deploy-api-${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, bcmath, intl
+
+      - name: Install dependencies
+        working-directory: api
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Upload files
+        run: |
+          rsync -az --delete \
+            --exclude='.env' --exclude='.git' --exclude='storage/' \
+            --exclude='tests/' --exclude='node_modules/' \
+            -e "ssh -p ${{ secrets.SSH_PORT }}" \
+            api/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ vars.API_PATH }}/
+
+      - name: Post-deploy commands
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ${{ vars.API_PATH }}
+            PHP=/opt/cpanel/ea-php83/root/usr/bin/php
+            $PHP artisan migrate --force
+            $PHP artisan storage:link || true
+            $PHP artisan config:cache
+            $PHP artisan route:cache
+            $PHP artisan view:cache
+            $PHP artisan queue:restart || true
+          EOF
