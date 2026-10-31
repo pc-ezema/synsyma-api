@@ -1,0 +1,8 @@
+{
+    "Authentication": true,
+    "Profile": true,
+    "Admin": true,
+    "Chat": true,
+    "User": true,
+    "Test": true
+}
