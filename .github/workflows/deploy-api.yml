@@ -63,7 +63,7 @@ jobs:
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             set -euo pipefail
             cd ${{ vars.API_PATH }}
-            PHP=/opt/cpanel/ea-php83/root/usr/bin/php
+            PHP=/usr/local/bin/php
 
             # --- Sanity checks (fail loudly, never silently) ---
             test -f .env || { echo "❌ No .env on server at $(pwd)"; exit 1; }
