@@ -9,7 +9,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name == 'prod' && 'production' || 'development' }}
-    concurrency: deploy-api-${{ github.ref_name }}
+    concurrency:
+      group: deploy-api-${{ github.ref_name }}
+      cancel-in-progress: false
+
     steps:
       - uses: actions/checkout@v4
 
@@ -17,9 +20,28 @@ jobs:
         with:
           php-version: '8.3'
           extensions: mbstring, pdo_mysql, bcmath, intl
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/composer
+            ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Validate composer.lock
+        run: composer validate --no-check-publish
 
       - name: Install dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction
+        run: |
+          composer install \
+            --no-dev \
+            --optimize-autoloader \
+            --no-interaction \
+            --prefer-dist \
+            --no-scripts
 
       - name: Setup SSH
         run: |
@@ -43,15 +65,33 @@ jobs:
             cd ${{ vars.API_PATH }}
             PHP=/opt/cpanel/ea-php83/root/usr/bin/php
 
-            # Sanity checks — fail early with a clear message
+            # --- Sanity checks (fail loudly, never silently) ---
             test -f .env || { echo "❌ No .env on server at $(pwd)"; exit 1; }
             "$PHP" -v
+            "$PHP" -m | grep -qi pdo_mysql || { echo "❌ pdo_mysql extension missing"; exit 1; }
 
-            "$PHP" artisan migrate --force --no-interaction
-            "$PHP" artisan storage:link || true
+            # --- Ensure dirs that were excluded from rsync exist and are writable ---
+            mkdir -p \
+              storage/framework/views \
+              storage/framework/sessions \
+              storage/framework/cache/data \
+              bootstrap/cache
+            chmod -R 775 storage bootstrap/cache
+
+            # --- Clear stale caches FIRST so later artisan commands use live config ---
             "$PHP" artisan optimize:clear
+
+            # --- Migrations ---
+            "$PHP" artisan migrate --force --no-interaction
+
+            # --- Storage symlink (idempotent) ---
+            "$PHP" artisan storage:link || true
+
+            # --- Warm caches LAST ---
             "$PHP" artisan config:cache
             "$PHP" artisan route:cache
             "$PHP" artisan view:cache
+
+            # --- Restart queue workers ---
             "$PHP" artisan queue:restart || true
           EOF
