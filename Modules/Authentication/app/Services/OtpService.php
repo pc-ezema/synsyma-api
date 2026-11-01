@@ -12,6 +12,8 @@ class OtpService
     public const EMAIL_VERIFICATION = 'email_verification';
     public const PASSWORD_RESET = 'password_reset';
     public const RESET_SESSION = 'password_reset_session';
+    public const PASSWORD_CHANGE = 'password_change';
+    public const PASSWORD_CHANGE_SESSION = 'password_change_session';
 
     public function ttlMinutes(): int
     {
@@ -40,7 +42,8 @@ class OtpService
      */
     public function send(string $email, string $purpose, ?string $name = null): void
     {
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $length = (int) config('authentication.otp.length', 6);
+        $code = str_pad((string) random_int(0, 10 ** $length - 1), $length, '0', STR_PAD_LEFT);
 
         Otp::updateOrCreate(
             ['email' => $email, 'purpose' => $purpose],
@@ -51,22 +54,37 @@ class OtpService
             ],
         );
 
-        $reset = $purpose === self::PASSWORD_RESET;
+        [$label, $heading, $intro, $subject] = match ($purpose) {
+            self::PASSWORD_RESET => [
+                'Password reset',
+                'Reset your password',
+                'We received a request to reset your Synsyma password. Enter this code in the app to choose a new one.',
+                'Reset your Synsyma password',
+            ],
+            self::PASSWORD_CHANGE => [
+                'Password change',
+                'Confirm your password change',
+                'You asked to change your Synsyma password. Enter this code in the app to continue.',
+                'Confirm your Synsyma password change',
+            ],
+            default => [
+                'Email verification',
+                'Verify your email',
+                'Welcome to Synsyma. Enter this code in the app to confirm your email address and finish setting up your account.',
+                'Verify your Synsyma email',
+            ],
+        };
 
         $data = [
             'code' => $code,
             'minutes' => $this->ttlMinutes(),
             'name' => $name,
-            'label' => $reset ? 'Password reset' : 'Email verification',
-            'heading' => $reset ? 'Reset your password' : 'Verify your email',
-            'intro' => $reset
-                ? 'We received a request to reset your '.config('app.name').' password. Enter this code in the app to choose a new one.'
-                : 'Welcome to '.config('app.name').'. Enter this code in the app to confirm your email address and finish setting up your account.',
+            'label' => $label,
+            'heading' => $heading,
+            'intro' => $intro,
             'logoUrl' => url('logo.png'),
             'supportEmail' => config('mail.from.address'),
         ];
-
-        $subject = $reset ? 'Reset your '.config('app.name').' password' : 'Verify your '.config('app.name').' email';
 
         try {
             Mail::send(
@@ -75,7 +93,7 @@ class OtpService
                 fn ($message) => $message->to($email)->subject($subject),
             );
         } catch (Throwable $e) {
-            report($e); // the person can tap "resend" if the email never arrives
+            report($e);
         }
     }
 
@@ -111,25 +129,32 @@ class OtpService
         Otp::where('email', $email)->where('purpose', $purpose)->delete();
     }
 
-    /** After a correct reset code: a one-time token that allows the password change. */
-    public function issueResetToken(string $email): string
+    private function hash(string $email, string $purpose, string $code): string
+    {
+        return hash_hmac('sha256', "{$email}|{$purpose}|{$code}", (string) config('app.key'));
+    }
+
+    public function issueSessionToken(string $email, string $sessionPurpose, int $minutes = 15): string
     {
         $token = \Illuminate\Support\Str::random(64);
 
         Otp::updateOrCreate(
-            ['email' => $email, 'purpose' => self::RESET_SESSION],
+            ['email' => $email, 'purpose' => $sessionPurpose],
             [
-                'code' => $this->hash($email, self::RESET_SESSION, $token),
+                'code' => $this->hash($email, $sessionPurpose, $token),
                 'attempts' => 0,
-                'expires_at' => now()->addMinutes(15),
+                'expires_at' => now()->addMinutes($minutes),
             ],
         );
 
         return $token;
     }
 
-    private function hash(string $email, string $purpose, string $code): string
+    /**
+     * Issue a session token for password reset.
+     */
+    public function issueResetToken(string $email): string
     {
-        return hash_hmac('sha256', "{$email}|{$purpose}|{$code}", (string) config('app.key'));
+        return $this->issueSessionToken($email, self::RESET_SESSION);
     }
 }

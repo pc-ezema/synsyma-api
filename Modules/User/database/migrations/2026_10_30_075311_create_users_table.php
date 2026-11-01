@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('phone', 30)->nullable();      // filled later via update profile
             $table->text('address')->nullable();          // filled later via update profile
-            $table->text('avatar')->nullable();           // filled later via update profile
+            $table->string('profile_photo_path')->nullable();        // filled later via update profile
             $table->timestamp('terms_accepted_at')->nullable();
             $table->string('terms_version', 20)->nullable();
             $table->boolean('is_active')->default(true);

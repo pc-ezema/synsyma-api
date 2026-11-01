@@ -6,6 +6,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -50,6 +51,9 @@ class User extends Authenticatable
             'email_verified' => $this->email_verified_at !== null,
             'created_at' => $this->created_at?->toIso8601String(),
             'terms_accepted_at' => $this->terms_accepted_at?->toIso8601String(),
+            'photo_url' => $this->profile_photo_path
+                ? Storage::disk('public')->url($this->profile_photo_path)
+                : null,
         ];
     }
 
