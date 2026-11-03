@@ -98,4 +98,9 @@ class AuthController extends Controller
             ], (new AdminResource($admin))->resolve()),
         ]);
     }
+
+    public function me(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $request->user()->toProfileArray()]);
+    }
 }

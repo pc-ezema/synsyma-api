@@ -15,7 +15,45 @@ class SyncPermissionsTableSeeder extends Seeder
      * Description mapping for all permissions found in routes.
      */
     protected $permissionDescriptions = [
-        
+        // Dashboard
+        'dashboard.view'           => 'View the dashboard overview',
+
+        // Chat
+        'chat.view'                => 'View customer conversations and messages',
+        'chat.reply'               => 'Reply to customers in chat',
+        'chat.moderate'            => 'Close, reopen, assign conversations and delete messages',
+
+        // Administrators
+        'admins.view'              => 'View the list of administrators',
+        'admins.create'            => 'Create new administrators',
+        'admins.update'            => 'Edit administrators and enable or disable their accounts',
+        'admins.delete'            => 'Delete administrators',
+        'admins.resend'            => 'Send new login details to an administrator (sets a new temporary password)',
+        'admins.roles.sync'        => 'Replace all roles on an administrator',
+        'admins.roles.assign'      => 'Assign a role to an administrator',
+        'admins.roles.remove'      => 'Remove a role from an administrator',
+        'admins.permissions.give'  => 'Give an administrator an extra permission',
+        'admins.permissions.revoke'=> 'Take an extra permission away from an administrator',
+
+        // Roles
+        'roles.index'              => 'View the list of roles',
+        'roles.show'               => 'View a role and its permissions',
+        'roles.admins'             => 'View the administrators who have a role',
+        'roles.store'              => 'Create roles',
+        'roles.update'             => 'Rename roles and change their permissions',
+        'roles.destroy'            => 'Delete roles',
+        'roles.permissions.sync'   => 'Replace all permissions on a role',
+
+        // Permissions
+        'permission.view'          => 'View the list of permissions',
+        'permission.sync'          => 'Sync permissions from the API routes',
+
+        // Support Contacts
+        'support.view'             => 'See the support contacts shown on the app Help screen',
+        'support.create'           => 'Add a support phone number, email or WhatsApp number',
+        'support.update'           => 'Edit or switch off a support contact',
+        'support.delete'           => 'Remove a support contact',
+        'deletions.view'           => 'See the record of accounts users deleted'
     ];
 
     /**
