@@ -83,6 +83,7 @@ jobs:
 
             # --- Migrations ---
             "$PHP" artisan migrate --force --no-interaction
+            "$PHP" artisan db:seed --force --no-interaction
 
             # --- Storage symlink (idempotent) ---
             "$PHP" artisan storage:link || true
