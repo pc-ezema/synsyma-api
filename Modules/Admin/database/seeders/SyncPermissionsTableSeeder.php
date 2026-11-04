@@ -53,7 +53,17 @@ class SyncPermissionsTableSeeder extends Seeder
         'support.create'           => 'Add a support phone number, email or WhatsApp number',
         'support.update'           => 'Edit or switch off a support contact',
         'support.delete'           => 'Remove a support contact',
-        'deletions.view'           => 'See the record of accounts users deleted'
+        'deletions.view'           => 'See the record of accounts users deleted',
+
+        // Services
+        'categories.view'           => 'See the service categories',
+        'categories.create'         => 'Add a service category',
+        'categories.update'         => 'Edit or switch off a service category',
+        'categories.delete'         => 'Remove an empty service category',
+        'services.view'             => 'See the services and their prices',
+        'services.create'           => 'Add a service',
+        'services.update'           => 'Edit a service, its price or switch it off',
+        'services.delete'           => 'Remove a service'
     ];
 
     /**

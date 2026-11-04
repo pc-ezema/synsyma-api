@@ -6,6 +6,8 @@ use Modules\Admin\Http\Controllers\AccountDeletionController;
 use Modules\Admin\Http\Controllers\AdminChatController;
 use Modules\Admin\Http\Controllers\AdminController;
 use Modules\Admin\Http\Controllers\AuthController;
+use Modules\Admin\Http\Controllers\ServiceCategoryController;
+use Modules\Admin\Http\Controllers\ServiceController;
 use Modules\Admin\Http\Controllers\SupportContactController;
 use Modules\Admin\Http\Middleware\EnsureAdmin;
 
@@ -108,6 +110,21 @@ Route::prefix('v1/admin')->group(function () {
         Route::prefix('account-deletions')->group(function () {
             Route::get('/', [AccountDeletionController::class, 'index'])->middleware('permission:deletions.view');
             Route::get('summary', [AccountDeletionController::class, 'summary'])->middleware('permission:deletions.view');
+        });
+
+        Route::prefix('service-categories')->group(function () {
+            Route::get('/', [ServiceCategoryController::class, 'index'])->middleware('permission:categories.view');
+            Route::post('/', [ServiceCategoryController::class, 'store'])->middleware('permission:categories.create');
+            Route::patch('{id}', [ServiceCategoryController::class, 'update'])->middleware('permission:categories.update');
+            Route::delete('{id}', [ServiceCategoryController::class, 'destroy'])->middleware('permission:categories.delete');
+        });
+
+        Route::prefix('services')->group(function () {
+            Route::get('/', [ServiceController::class, 'index'])->middleware('permission:services.view');
+            Route::get('{id}', [ServiceController::class, 'show'])->middleware('permission:services.view');
+            Route::post('/', [ServiceController::class, 'store'])->middleware('permission:services.create');
+            Route::patch('{id}', [ServiceController::class, 'update'])->middleware('permission:services.update');
+            Route::delete('{id}', [ServiceController::class, 'destroy'])->middleware('permission:services.delete');
         });
     });
 });

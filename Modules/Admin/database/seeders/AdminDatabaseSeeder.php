@@ -14,6 +14,7 @@ class AdminDatabaseSeeder extends Seeder
         $this->call([
             SyncPermissionsTableSeeder::class,
             RolePermissionTableSeeder::class,
+            ServiceCatalogSeeder::class,
         ]);
     }
 }
