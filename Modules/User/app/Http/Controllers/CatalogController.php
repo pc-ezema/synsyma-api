@@ -20,6 +20,7 @@ class CatalogController extends Controller
 {
     private const TIER_ORDER = ['premium' => 0, 'regular' => 1];
 
+    /** GET /categories: only active categories with at least one active service. */
     public function categories(): JsonResponse
     {
         $rows = ServiceCategory::query()
