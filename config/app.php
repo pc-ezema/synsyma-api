@@ -15,6 +15,7 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
     'admin_url' => env('ADMIN_DASHBOARD_URL', 'http://localhost:5173'),
+    'alert_emails' => env('ALERT_EMAILS', 'info@synsyma.com'),
 
     /*
     |--------------------------------------------------------------------------

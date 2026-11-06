@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Modules\Authentication\Services\OtpService;
+use Modules\Profile\Support\PasswordChangeNotifier;
 use Modules\User\Models\User;
 
 class AuthenticationController extends Controller
@@ -226,6 +227,8 @@ class AuthenticationController extends Controller
         ])->save();
 
         $user->tokens()->delete(); // sign out everywhere
+
+        PasswordChangeNotifier::send($user, $request, viaReset: true, signedOutOthers: true);
 
         return response()->json(['message' => 'Password updated. Please sign in with your new password.']);
     }

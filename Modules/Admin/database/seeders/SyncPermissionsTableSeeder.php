@@ -63,7 +63,23 @@ class SyncPermissionsTableSeeder extends Seeder
         'services.view'             => 'See the services and their prices',
         'services.create'           => 'Add a service',
         'services.update'           => 'Edit a service, its price or switch it off',
-        'services.delete'           => 'Remove a service'
+        'services.delete'           => 'Remove a service',
+
+        // Contractors
+        'contractors.view'          => 'See the contractors and their documents',
+        'contractors.create'        => 'Add a contractor',
+        'contractors.update'        => 'Edit, approve, reject or suspend a contractor',
+        'contractors.delete'        => 'Remove a contractor',
+        'contractors.documents.view' => 'See the documents for a contractor',
+        'contractors.documents.create' => 'Add a document for a contractor',
+        'contractors.documents.update' => 'Edit a document for a contractor',
+        'contractors.documents.delete' => 'Remove a document for a contractor',
+        'campaigns.view'            => 'See the QR codes for contractor sign-up',
+        'campaigns.manage'          => 'Create, switch off or remove QR codes',
+
+        // Bookings
+        'bookings.view'             => 'See the bookings and their details',
+        'bookings.manage'           => 'Change the status of a booking, assign a contractor or add a note',
     ];
 
     /**

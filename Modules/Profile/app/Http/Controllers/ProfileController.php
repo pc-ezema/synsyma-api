@@ -12,6 +12,7 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Modules\Profile\Support\PasswordChangeNotifier;
 
 class ProfileController extends Controller
 {
@@ -21,8 +22,6 @@ class ProfileController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        Log::info($request->user());
-        Log::info($request->user()->toApiArray());
         return response()->json(['data' => $request->user()->toApiArray()]);
     }
 
@@ -196,6 +195,8 @@ class ProfileController extends Controller
         $this->otp->forget($user->email, OtpService::PASSWORD_CHANGE_SESSION);
 
         $user->forceFill(['password' => $data['password']])->save();
+
+        PasswordChangeNotifier::send($user, $request, signedOutOthers: true);
 
         return response()->json(['message' => 'Password updated.']);
     }

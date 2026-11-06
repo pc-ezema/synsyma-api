@@ -3,9 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AccessControlController;
 use Modules\Admin\Http\Controllers\AccountDeletionController;
+use Modules\Admin\Http\Controllers\AdminBookingController;
 use Modules\Admin\Http\Controllers\AdminChatController;
 use Modules\Admin\Http\Controllers\AdminController;
 use Modules\Admin\Http\Controllers\AuthController;
+use Modules\Admin\Http\Controllers\ContractorCampaignController;
+use Modules\Admin\Http\Controllers\ContractorController;
+use Modules\Admin\Http\Controllers\ContractorDocumentController;
+use Modules\Admin\Http\Controllers\PublicJoinController;
 use Modules\Admin\Http\Controllers\ServiceCategoryController;
 use Modules\Admin\Http\Controllers\ServiceController;
 use Modules\Admin\Http\Controllers\SupportContactController;
@@ -126,5 +131,42 @@ Route::prefix('v1/admin')->group(function () {
             Route::patch('{id}', [ServiceController::class, 'update'])->middleware('permission:services.update');
             Route::delete('{id}', [ServiceController::class, 'destroy'])->middleware('permission:services.delete');
         });
+
+        Route::prefix('contractors')->group(function () {
+            Route::get('/', [ContractorController::class, 'index'])->middleware('permission:contractors.view');
+            Route::get('summary', [ContractorController::class, 'summary'])->middleware('permission:contractors.view');
+            Route::post('/', [ContractorController::class, 'store'])->middleware('permission:contractors.create');
+            Route::get('{id}', [ContractorController::class, 'show'])->middleware('permission:contractors.view');
+            Route::patch('{id}', [ContractorController::class, 'update'])->middleware('permission:contractors.update');
+            Route::patch('{id}/status', [ContractorController::class, 'updateStatus'])->middleware('permission:contractors.update');
+            Route::delete('{id}', [ContractorController::class, 'destroy'])->middleware('permission:contractors.delete');
+
+            Route::post('{contractorId}/documents', [ContractorDocumentController::class, 'store'])->middleware('permission:contractors.update');
+            Route::get('{contractorId}/documents/{id}', [ContractorDocumentController::class, 'download'])->middleware('permission:contractors.view');
+            Route::patch('{contractorId}/documents/{id}', [ContractorDocumentController::class, 'update'])->middleware('permission:contractors.update');
+            Route::delete('{contractorId}/documents/{id}', [ContractorDocumentController::class, 'destroy'])->middleware('permission:contractors.update');
+        });
+
+        Route::prefix('contractor-campaigns')->group(function () {
+            Route::get('/', [ContractorCampaignController::class, 'index'])->middleware('permission:campaigns.view');
+            Route::post('/', [ContractorCampaignController::class, 'store'])->middleware('permission:campaigns.manage');
+            Route::patch('{id}', [ContractorCampaignController::class, 'update'])->middleware('permission:campaigns.manage');
+            Route::delete('{id}', [ContractorCampaignController::class, 'destroy'])->middleware('permission:campaigns.manage');
+        });
+
+        Route::prefix('bookings')->group(function () {
+            Route::get('summary', [AdminBookingController::class, 'summary'])->middleware('permission:bookings.view');
+            Route::get('/', [AdminBookingController::class, 'index'])->middleware('permission:bookings.view');
+            Route::get('{id}', [AdminBookingController::class, 'show'])->middleware('permission:bookings.view');
+            Route::get('{id}/contractor-options', [AdminBookingController::class, 'contractorOptions'])->middleware('permission:bookings.view');
+            Route::patch('{id}/assign', [AdminBookingController::class, 'assign'])->middleware('permission:bookings.manage');
+            Route::patch('{id}/status', [AdminBookingController::class, 'updateStatus'])->middleware('permission:bookings.manage');
+            Route::patch('{id}/notes', [AdminBookingController::class, 'updateNotes'])->middleware('permission:bookings.manage');
+        });
+    });
+
+    Route::prefix('public/join')->group(function () {
+        Route::get('options', [PublicJoinController::class, 'options'])->middleware('throttle:60,1');
+        Route::post('apply', [PublicJoinController::class, 'apply'])->middleware('throttle:6,1');
     });
 });

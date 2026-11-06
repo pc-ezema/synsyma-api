@@ -1,7 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\User\Http\Controllers\BookingController;
+use Modules\User\Http\Controllers\AddressController;
 use Modules\User\Http\Controllers\CatalogController;
+use Modules\User\Http\Controllers\PaymentController;
+use Modules\User\Http\Controllers\StripeWebhookController;
 use Modules\User\Http\Controllers\UserController;
 use Modules\User\Http\Middleware\EnsureUser;
 
@@ -12,5 +16,19 @@ Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->grou
     Route::get('categories', [CatalogController::class, 'categories']);
     Route::get('services', [CatalogController::class, 'index']);
     Route::get('services/{id}', [CatalogController::class, 'show']);
-});
 
+    Route::get('addresses', [AddressController::class, 'index']);
+    Route::post('addresses', [AddressController::class, 'store']);
+    Route::patch('addresses/{id}', [AddressController::class, 'update']);
+    Route::delete('addresses/{id}', [AddressController::class, 'destroy']);
+
+    Route::get('bookings', [BookingController::class, 'index']);          // ?scope=active|past
+    Route::post('bookings/preview', [BookingController::class, 'preview']);
+    Route::post('bookings', [BookingController::class, 'store']);
+    Route::get('bookings/{id}', [BookingController::class, 'show']);
+
+    Route::post('bookings/{id}/pay', [PaymentController::class, 'start']);
+    Route::post('bookings/{id}/pay/sync', [PaymentController::class, 'sync']);
+});
+Route::get('v1/public/support-contacts', [UserController::class, 'contacts'])->middleware('throttle:60,1');
+Route::post('v1/webhooks/stripe', [StripeWebhookController::class, 'handle']);
