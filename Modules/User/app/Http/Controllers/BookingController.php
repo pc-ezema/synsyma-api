@@ -10,8 +10,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\User\Models\Address;
 use Modules\User\Models\Booking;
+use Modules\Admin\Models\PromoCode;
 use Modules\Admin\Models\Service;
 use Modules\User\Support\PriceCalculator;
+use Modules\Admin\Support\Promos;
 
 /** The signed-in customer's own bookings. */
 class BookingController extends Controller
@@ -59,6 +61,7 @@ class BookingController extends Controller
         $data = $request->validate([
             'service_id' => ['required', 'uuid'],
             'address_id' => ['sometimes', 'nullable', 'uuid'],
+            'promo_code' => ['sometimes', 'nullable', 'string', 'max:40'],
         ]);
 
         $service = $this->bookableService($data['service_id']);
@@ -66,7 +69,8 @@ class BookingController extends Controller
             ? Address::where('user_id', $request->user()->id)->findOrFail($data['address_id'])
             : null;
 
-        $price = PriceCalculator::quote($service, $address?->country, $address?->region);
+        // A bad code answers 422 on "promo_code" with a message the app shows under the code field.
+        $price = PriceCalculator::quote($service, $address?->country, $address?->region, $data['promo_code'] ?? null, $request->user()->id);
 
         return response()->json(['data' => $price + [
             'service_name' => $service->name,
@@ -83,6 +87,7 @@ class BookingController extends Controller
             'starts_at' => ['required', 'date'],       // ISO 8601 with offset, e.g. 2026-11-10T09:00:00-05:00
             'timezone' => ['sometimes', 'nullable', 'timezone:all'], // e.g. America/Toronto. If missing, the offset in starts_at is used.
             'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'promo_code' => ['sometimes', 'nullable', 'string', 'max:40'],
         ]);
 
         $user = $request->user();
@@ -94,14 +99,19 @@ class BookingController extends Controller
 
         $tz = $data['timezone'] ?? Carbon::parse($data['starts_at'])->getTimezone()->getName(); // e.g. "-05:00" when only an offset is sent
         $start = $this->checkStart($data['starts_at'], $tz);
-        $price = PriceCalculator::quote($service, $address->country, $address->region);
+        $booking = DB::transaction(function () use ($user, $service, $address, $data, $start, $tz) {
+            // Lock the code while we count its uses, so two people cannot take the last one together.
+            if ($code = Promos::normalize($data['promo_code'] ?? null)) {
+                PromoCode::where('code', $code)->lockForUpdate()->first();
+            }
+            $price = PriceCalculator::quote($service, $address->country, $address->region, $data['promo_code'] ?? null, $user->id);
 
-        $booking = DB::transaction(function () use ($user, $service, $address, $data, $start, $price, $tz) {
             $booking = Booking::create([
                 'reference' => Booking::newReference(),
                 'user_id' => $user->id,
                 'service_id' => $service->id,
-                'status' => $price['is_quote'] ? 'quote_requested' : 'pending_payment',
+                // A code can make a booking free: nothing to pay, so it is confirmed straight away.
+                'status' => $price['is_quote'] ? 'quote_requested' : ($price['total'] <= 0 ? 'confirmed' : 'pending_payment'),
                 'starts_at' => $start->copy()->utc(),
                 'timezone' => $tz,
                 'country' => $address->country,
@@ -123,9 +133,10 @@ class BookingController extends Controller
                 'discount_total' => $price['discount_total'],
                 'tax_total' => $price['tax_total'],
                 'total' => $price['total'],
+                'promo_code' => $price['promo_code'],
                 'notes' => isset($data['notes']) ? trim($data['notes']) ?: null : null,
             ]);
-            $booking->log('created', 'customer', null, $booking->status);
+            $booking->log('created', 'customer', null, $booking->status, $price['promo_code'] ? 'Promo code ' . $price['promo_code'] . ' applied.' : null);
 
             return $booking;
         });

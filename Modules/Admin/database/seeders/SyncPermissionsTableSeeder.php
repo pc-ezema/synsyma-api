@@ -83,6 +83,18 @@ class SyncPermissionsTableSeeder extends Seeder
 
         // Payments
         'payments.view'             => 'See the payments and their details',
+
+        // Banners
+        'banners.view'             => 'See the list of banners',
+        'banners.create'           => 'Add a banner',
+        'banners.update'           => 'Edit a banner or switch it off',
+        'banners.delete'           => 'Remove a banner',
+
+        // Promos
+        'promos.view'               => 'See the list of promo codes',
+        'promos.create'             => 'Add a promo code',
+        'promos.update'             => 'Edit a promo code or switch it off',
+        'promos.delete'             => 'Remove a promo code',
     ];
 
     /**

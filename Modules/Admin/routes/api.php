@@ -8,6 +8,8 @@ use Modules\Admin\Http\Controllers\AdminBookingPolicyController;
 use Modules\Admin\Http\Controllers\AdminChatController;
 use Modules\Admin\Http\Controllers\AdminController;
 use Modules\Admin\Http\Controllers\AdminPaymentController;
+use Modules\Admin\Http\Controllers\AdminPromoBannerController;
+use Modules\Admin\Http\Controllers\AdminPromoCodeController;
 use Modules\Admin\Http\Controllers\AuthController;
 use Modules\Admin\Http\Controllers\ContractorCampaignController;
 use Modules\Admin\Http\Controllers\ContractorController;
@@ -172,6 +174,21 @@ Route::prefix('v1/admin')->group(function () {
 
         Route::get('payments', [AdminPaymentController::class, 'index'])->middleware('permission:payments.view');
         Route::get('payments/export', [AdminPaymentController::class, 'export'])->middleware('permission:payments.view');
+
+        Route::prefix('promo-codes')->group(function () {
+            Route::get('/', [AdminPromoCodeController::class, 'index'])->middleware('permission:promos.view');
+            Route::post('/', [AdminPromoCodeController::class, 'store'])->middleware('permission:promos.create');
+            Route::patch('{id}', [AdminPromoCodeController::class, 'update'])->middleware('permission:promos.update');
+            Route::delete('{id}', [AdminPromoCodeController::class, 'destroy'])->middleware('permission:promos.delete');
+        });
+        Route::prefix('banners')->group(function () {
+            Route::get('/', [AdminPromoBannerController::class, 'index'])->middleware('permission:banners.view');
+            Route::post('/', [AdminPromoBannerController::class, 'store'])->middleware('permission:banners.create');
+            Route::patch('{id}', [AdminPromoBannerController::class, 'update'])->middleware('permission:banners.update');
+            Route::post('{id}/image', [AdminPromoBannerController::class, 'uploadImage'])->middleware('permission:banners.update');
+            Route::delete('{id}/image', [AdminPromoBannerController::class, 'removeImage'])->middleware('permission:banners.update');
+            Route::delete('{id}', [AdminPromoBannerController::class, 'destroy'])->middleware('permission:banners.delete');
+        });
     });
 
     Route::prefix('public/join')->group(function () {
