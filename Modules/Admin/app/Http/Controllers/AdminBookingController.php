@@ -5,14 +5,21 @@ namespace Modules\Admin\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\User\Models\Booking;
 use Modules\Admin\Models\Contractor;
+use Modules\User\Support\CancellationPolicy;
+use Modules\User\Support\StripeGateway;
 
 /** Admin: see every booking, assign a contractor, move it along. */
 class AdminBookingController extends Controller
 {
+    public function __construct(private readonly StripeGateway $stripe)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $q = Booking::with(['user', 'contractor', 'service'])->orderByDesc('starts_at');
@@ -101,6 +108,8 @@ class AdminBookingController extends Controller
         $data = $request->validate([
             'status' => ['required', Rule::in(Booking::STATUSES)],
             'note' => ['nullable', 'string', 'max:300'],
+            // Only used when cancelling: none | policy (what the customer would have got) | full
+            'refund' => ['nullable', Rule::in(['none', 'policy', 'full'])],
         ]);
         $to = $data['status'];
         $note = trim((string) ($data['note'] ?? '')) ?: null;
@@ -113,6 +122,19 @@ class AdminBookingController extends Controller
         }
         if ($to === 'cancelled' && ! $note) {
             throw ValidationException::withMessages(['note' => 'Give a short reason for cancelling.']);
+        }
+
+        $refundNote = '';
+        if ($to === 'cancelled' && ($data['refund'] ?? 'none') !== 'none') {
+            $amount = $data['refund'] === 'full' ? $this->stripe->refundableTotal($booking) : CancellationPolicy::quote($booking)['refund'];
+            if ($amount > 0) {
+                try {
+                    $done = $this->stripe->refundBooking($booking, $amount);
+                } catch (\Throwable $e) {
+                    throw ValidationException::withMessages(['refund' => 'The refund could not be processed: ' . $e->getMessage()]);
+                }
+                $refundNote = $done > 0 ? ' Refunded ' . $booking->money($done) . '.' : '';
+            }
         }
 
         $from = $booking->status;
@@ -128,9 +150,66 @@ class AdminBookingController extends Controller
             $booking->cancelled_at = now();
         }
         $booking->save();
-        $booking->log('status', 'admin', $from, $to, $note);
+        $booking->log('status', 'admin', $from, $to, trim(($note ?? '') . $refundNote) ?: null);
 
         return response()->json(['message' => 'Booking updated.', 'data' => $this->load($id)->toArrayFlat(true, true)]);
+    }
+
+    /** A refund on its own (for example after a completed job). */
+    public function refund(Request $request, string $id): JsonResponse
+    {
+        $booking = Booking::findOrFail($id);
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'note' => ['required', 'string', 'max:300'],
+        ]);
+
+        $left = $this->stripe->refundableTotal($booking);
+        if ($left <= 0) {
+            throw ValidationException::withMessages(['amount' => 'There is no paid amount to refund on this booking.']);
+        }
+        if ((float) $data['amount'] > $left) {
+            throw ValidationException::withMessages(['amount' => 'The most you can refund is ' . $booking->money($left) . '.']);
+        }
+
+        try {
+            $done = $this->stripe->refundBooking($booking, (float) $data['amount']);
+        } catch (\Throwable $e) {
+            throw ValidationException::withMessages(['amount' => 'The refund could not be processed: ' . $e->getMessage()]);
+        }
+
+        $from = $booking->status;
+        if ($booking->status === 'completed' && $this->stripe->refundableTotal($booking) <= 0) {
+            $booking->update(['status' => 'refunded']);
+        }
+        $booking->log('refund', 'admin', $from, $booking->status !== $from ? $booking->status : null, 'Refunded ' . $booking->money($done) . '. ' . trim($data['note']));
+
+        return response()->json(['message' => 'Refunded ' . $booking->money($done) . '.', 'data' => $this->load($id)->toArrayFlat(true, true)]);
+    }
+
+    /** Admin moves the job. Unlike the customer, no free-reschedule limit applies, and the contractor stays. */
+    public function reschedule(Request $request, string $id): JsonResponse
+    {
+        $booking = Booking::findOrFail($id);
+        $data = $request->validate([
+            'starts_at_local' => ['required', 'date_format:Y-m-d\TH:i'],
+            'note' => ['nullable', 'string', 'max:300'],
+        ]);
+
+        if (! in_array($booking->status, ['pending_payment', 'confirmed', 'assigned'], true)) {
+            throw ValidationException::withMessages(['starts_at_local' => "A {$booking->status} booking cannot be rescheduled."]);
+        }
+        $local = Carbon::createFromFormat('Y-m-d\TH:i', $data['starts_at_local'], $booking->timezone);
+        if ($local->isPast()) {
+            throw ValidationException::withMessages(['starts_at_local' => 'Choose a time in the future.']);
+        }
+
+        $old = $booking->starts_at->copy()->setTimezone($booking->timezone);
+        $booking->update(['starts_at' => $local->copy()->utc()]);
+        $note = trim((string) ($data['note'] ?? ''));
+        $booking->log('rescheduled', 'admin', null, null, 'Moved from ' . $old->format('D j M Y, g:ia') . ' to ' . $local->format('D j M Y, g:ia') . '.' . ($note !== '' ? ' ' . $note : ''));
+
+        return response()->json(['message' => 'Booking rescheduled.', 'data' => $this->load($id)->toArrayFlat(true, true)]);
     }
 
     public function updateNotes(Request $request, string $id): JsonResponse

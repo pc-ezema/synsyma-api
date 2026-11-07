@@ -80,6 +80,9 @@ class SyncPermissionsTableSeeder extends Seeder
         // Bookings
         'bookings.view'             => 'See the bookings and their details',
         'bookings.manage'           => 'Change the status of a booking, assign a contractor or add a note',
+
+        // Payments
+        'payments.view'             => 'See the payments and their details',
     ];
 
     /**

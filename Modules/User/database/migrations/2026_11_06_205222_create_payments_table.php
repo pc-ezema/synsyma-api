@@ -26,11 +26,15 @@ return new class extends Migration
             $table->string('stripe_payment_intent_id')->nullable()->unique();
             $table->string('stripe_checkout_session_id')->nullable()->unique();
             $table->string('stripe_charge_id')->nullable();
+            $table->string('paypal_order_id')->nullable()->unique();
+            $table->string('paypal_capture_id')->nullable();
+            $table->string('return_url', 500)->nullable();
             $table->string('card_brand', 20)->nullable();
             $table->string('card_last4', 4)->nullable();
             $table->string('failure_message')->nullable();
             $table->decimal('refunded_total', 10, 2)->default(0);
             $table->timestamp('paid_at')->nullable();
+            $table->unsignedTinyInteger('hours')->nullable();
             $table->timestamps();
         });
  

@@ -3,8 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use Modules\User\Http\Controllers\BookingController;
 use Modules\User\Http\Controllers\AddressController;
+use Modules\User\Http\Controllers\BookingChangeController;
 use Modules\User\Http\Controllers\CatalogController;
 use Modules\User\Http\Controllers\PaymentController;
+use Modules\User\Http\Controllers\PayPalController;
 use Modules\User\Http\Controllers\StripeWebhookController;
 use Modules\User\Http\Controllers\UserController;
 use Modules\User\Http\Middleware\EnsureUser;
@@ -27,8 +29,18 @@ Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->grou
     Route::post('bookings', [BookingController::class, 'store']);
     Route::get('bookings/{id}', [BookingController::class, 'show']);
 
+    Route::get('payment-methods', [PaymentController::class, 'methods']);
+
     Route::post('bookings/{id}/pay', [PaymentController::class, 'start']);
     Route::post('bookings/{id}/pay/sync', [PaymentController::class, 'sync']);
+
+    Route::get('bookings/{id}/cancel-preview', [BookingChangeController::class, 'cancelPreview']);
+    Route::post('bookings/{id}/cancel', [BookingChangeController::class, 'cancel']);
+
+    Route::get('bookings/{id}/options', [BookingChangeController::class, 'options']);
+    Route::post('bookings/{id}/reschedule', [BookingChangeController::class, 'reschedule']);
 });
 Route::get('v1/public/support-contacts', [UserController::class, 'contacts'])->middleware('throttle:60,1');
-Route::post('v1/webhooks/stripe', [StripeWebhookController::class, 'handle']);
+Route::post('v1/webhooks/paypal', [PayPalController::class, 'webhook']);
+Route::get('v1/paypal/return', [PayPalController::class, 'approved'])->name('paypal.return');
+Route::get('v1/paypal/cancel', [PayPalController::class, 'cancelled'])->name('paypal.cancel');

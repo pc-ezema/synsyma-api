@@ -40,13 +40,24 @@ class Payment extends Model
     {
         return $this->belongsTo(Booking::class, 'booking_id');
     }
-
+ 
+    /** What the admin sees: paid | partially_refunded | refunded | failed | unpaid */
+    public function state(): string
+    {
+        return match ($this->status) {
+            'succeeded' => 'paid',
+            'partially_refunded', 'refunded' => $this->status,
+            default => $this->failure_message ? 'failed' : 'unpaid',
+        };
+    }
+ 
     public function toArrayFlat(): array
     {
         return [
             'id' => $this->id,
             'purpose' => $this->purpose,
             'status' => $this->status,
+            'state' => $this->state(),
             'amount' => $this->amount,
             'currency' => $this->currency,
             'card_brand' => $this->card_brand,

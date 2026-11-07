@@ -17,7 +17,7 @@ return new class extends Migration
             $table->uuid('user_id')->index();
             $table->foreignUuid('service_id')->constrained('services')->restrictOnDelete();
             $table->foreignUuid('contractor_id')->nullable()->constrained('contractors')->nullOnDelete();
- 
+        
             $table->string('status', 20)->default('pending_payment')->index();
  
             // When (stored in UTC, with the customer's timezone so we can show local time)
@@ -49,6 +49,8 @@ return new class extends Migration
             $table->decimal('tax_total', 10, 2)->default(0);
             $table->decimal('total', 10, 2)->default(0);
             $table->string('promo_code', 40)->nullable();
+            $table->unsignedTinyInteger('reschedule_count')->default(0);
+            $table->unsignedTinyInteger('extra_hours')->default(0);
  
             $table->string('notes', 1000)->nullable();               // from the customer
             $table->text('admin_notes')->nullable();                 // private

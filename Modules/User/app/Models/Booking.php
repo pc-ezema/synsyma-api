@@ -22,7 +22,7 @@ class Booking extends Model
         'pending_payment', 'confirmed', 'assigned', 'in_progress', 'completed',
         'cancelled', 'refunded', 'quote_requested', 'quote_sent',
     ];
-
+ 
     /** Which status can follow which. "assigned" is only reached through the assign action. */
     public const TRANSITIONS = [
         'pending_payment' => ['confirmed', 'cancelled'],
@@ -61,7 +61,7 @@ class Booking extends Model
         });
     }
 
-    public function service(): BelongsTo
+   public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class, 'service_id')->withTrashed();
     }
@@ -164,6 +164,8 @@ class Booking extends Model
             'contractor_name' => $this->contractor?->name,
             'image_url' => $this->service?->imageUrl(),
             'included_hours' => $this->included_hours,
+            'extra_hours' => (int) $this->extra_hours,
+            'reschedule_count' => (int) $this->reschedule_count,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
  
@@ -185,8 +187,17 @@ class Booking extends Model
                 'completed_at' => $this->completed_at?->toIso8601String(),
                 'cancelled_at' => $this->cancelled_at?->toIso8601String(),
                 'payment' => $this->mainPayment()?->toArrayFlat(),
+                'payments' => $this->payments->map->toArrayFlat()->values(),
                 'events' => $this->events->map->toArrayFlat()->values(),
             ];
+        }
+ 
+        if ($admin && $full) {
+            $paid = \Modules\User\Support\CancellationPolicy::paidPayment($this);
+            $row['cancel_quote'] = in_array($this->status, \Modules\User\Support\CancellationPolicy::CANCELLABLE, true)
+                ? \Modules\User\Support\CancellationPolicy::quote($this)
+                : null;
+            $row['refundable'] = round($this->payments->whereIn('status', ['succeeded', 'partially_refunded'])->sum(fn ($p) => max(0, (float) $p->amount - (float) $p->refunded_total)), 2);
         }
  
         return $row;

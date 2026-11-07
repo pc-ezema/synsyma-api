@@ -4,8 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AccessControlController;
 use Modules\Admin\Http\Controllers\AccountDeletionController;
 use Modules\Admin\Http\Controllers\AdminBookingController;
+use Modules\Admin\Http\Controllers\AdminBookingPolicyController;
 use Modules\Admin\Http\Controllers\AdminChatController;
 use Modules\Admin\Http\Controllers\AdminController;
+use Modules\Admin\Http\Controllers\AdminPaymentController;
 use Modules\Admin\Http\Controllers\AuthController;
 use Modules\Admin\Http\Controllers\ContractorCampaignController;
 use Modules\Admin\Http\Controllers\ContractorController;
@@ -162,7 +164,14 @@ Route::prefix('v1/admin')->group(function () {
             Route::patch('{id}/assign', [AdminBookingController::class, 'assign'])->middleware('permission:bookings.manage');
             Route::patch('{id}/status', [AdminBookingController::class, 'updateStatus'])->middleware('permission:bookings.manage');
             Route::patch('{id}/notes', [AdminBookingController::class, 'updateNotes'])->middleware('permission:bookings.manage');
+            Route::post('{id}/refund', [AdminBookingController::class, 'refund'])->middleware('permission:bookings.manage');
+            Route::patch('{id}/reschedule', [AdminBookingController::class, 'reschedule'])->middleware('permission:bookings.manage');
         });
+        Route::get('booking-policy', [AdminBookingPolicyController::class, 'show'])->middleware('permission:bookings.manage');
+        Route::put('booking-policy', [AdminBookingPolicyController::class, 'update'])->middleware('permission:bookings.manage');
+
+        Route::get('payments', [AdminPaymentController::class, 'index'])->middleware('permission:payments.view');
+        Route::get('payments/export', [AdminPaymentController::class, 'export'])->middleware('permission:payments.view');
     });
 
     Route::prefix('public/join')->group(function () {
