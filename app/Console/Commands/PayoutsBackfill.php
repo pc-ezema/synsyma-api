@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Admin\Console;
+namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Modules\User\Models\Booking;
