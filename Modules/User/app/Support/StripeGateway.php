@@ -150,7 +150,7 @@ class StripeGateway
                 'customer' => $customer,
                 'description' => $label . ' · ' . $b->reference,
                 'automatic_payment_methods' => ['enabled' => 'true'],
-                'setup_future_usage' => 'on_session', // lets the customer save the card
+                // 'setup_future_usage' => 'on_session', // lets the customer save the card
                 'receipt_email' => $user->email ?? null,
                 'metadata' => ['booking_id' => $b->id, 'reference' => $b->reference, 'user_id' => (string) $user->id, 'purpose' => $purpose],
             ]);
@@ -200,9 +200,12 @@ class StripeGateway
                 ],
             ]],
             'payment_intent_data' => [
-                'setup_future_usage' => 'on_session',
                 'description' => $label . ' · ' . $b->reference,
                 'metadata' => ['booking_id' => $b->id, 'reference' => $b->reference, 'user_id' => (string) $user->id, 'purpose' => $purpose],
+            ],
+            'saved_payment_method_options' => [
+                'payment_method_save' => 'enabled',                         // shows "Save my card for next time"
+                'allow_redisplay_filter' => ['always', 'limited', 'unspecified'], // also shows cards saved before this change
             ],
             'metadata' => ['booking_id' => $b->id],
             'success_url' => $returnUrl . $sep . 'paid=1',

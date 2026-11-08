@@ -95,6 +95,10 @@ class SyncPermissionsTableSeeder extends Seeder
         'promos.create'             => 'Add a promo code',
         'promos.update'             => 'Edit a promo code or switch it off',
         'promos.delete'             => 'Remove a promo code',
+
+        // Payouts
+        'payouts.view'              => 'See the payouts and their details',
+        'payouts.manage'            => 'Mark a payout as paid and send the contractor a notification',
     ];
 
     /**

@@ -59,6 +59,16 @@ class Booking extends Model
                 $model->id = (string) Str::uuid();
             }
         });
+
+        static::updated(function (Booking $b) {
+            if ($b->wasChanged('status') && $b->status === 'completed') {
+                try {
+                    \Modules\Admin\Support\Ledger::onCompleted($b);
+                } catch (\Throwable $e) {
+                    report($e); // never block completing a job; php artisan payouts:backfill fixes any gap
+                }
+            }
+        });
     }
 
    public function service(): BelongsTo
@@ -198,6 +208,7 @@ class Booking extends Model
                 ? \Modules\User\Support\CancellationPolicy::quote($this)
                 : null;
             $row['refundable'] = round($this->payments->whereIn('status', ['succeeded', 'partially_refunded'])->sum(fn ($p) => max(0, (float) $p->amount - (float) $p->refunded_total)), 2);
+            $row['ledger'] = \Modules\Admin\Support\Ledger::forBooking($this);
         }
  
         return $row;

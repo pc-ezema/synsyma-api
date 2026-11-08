@@ -5,6 +5,7 @@ use Modules\User\Http\Controllers\BookingController;
 use Modules\User\Http\Controllers\AddressController;
 use Modules\User\Http\Controllers\BannerController;
 use Modules\User\Http\Controllers\BookingChangeController;
+use Modules\User\Http\Controllers\CardController;
 use Modules\User\Http\Controllers\CatalogController;
 use Modules\User\Http\Controllers\PaymentController;
 use Modules\User\Http\Controllers\PayPalController;
@@ -42,6 +43,9 @@ Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->grou
     Route::post('bookings/{id}/reschedule', [BookingChangeController::class, 'reschedule']);
 
     Route::get('banners', [BannerController::class, 'index']);
+
+    Route::get('cards', [CardController::class, 'index']);
+    Route::delete('cards/{id}', [CardController::class, 'destroy']);
 });
 Route::get('v1/public/support-contacts', [UserController::class, 'contacts'])->middleware('throttle:60,1');
 Route::post('v1/webhooks/paypal', [PayPalController::class, 'webhook']);

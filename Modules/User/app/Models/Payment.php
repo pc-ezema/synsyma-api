@@ -34,6 +34,16 @@ class Payment extends Model
                 $model->id = (string) Str::uuid();
             }
         });
+
+        static::updated(function (Payment $p) {
+            if ($p->wasChanged('refunded_total') && $p->booking) {
+                try {
+                    \Modules\Admin\Support\Ledger::sync($p->booking);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+        });
     }
 
     public function booking(): BelongsTo

@@ -8,6 +8,7 @@ use Modules\Admin\Http\Controllers\AdminBookingPolicyController;
 use Modules\Admin\Http\Controllers\AdminChatController;
 use Modules\Admin\Http\Controllers\AdminController;
 use Modules\Admin\Http\Controllers\AdminPaymentController;
+use Modules\Admin\Http\Controllers\AdminPayoutController;
 use Modules\Admin\Http\Controllers\AdminPromoBannerController;
 use Modules\Admin\Http\Controllers\AdminPromoCodeController;
 use Modules\Admin\Http\Controllers\AuthController;
@@ -189,6 +190,17 @@ Route::prefix('v1/admin')->group(function () {
             Route::delete('{id}/image', [AdminPromoBannerController::class, 'removeImage'])->middleware('permission:banners.update');
             Route::delete('{id}', [AdminPromoBannerController::class, 'destroy'])->middleware('permission:banners.delete');
         });
+        Route::prefix('payouts')->group(function () {
+            Route::get('/', [AdminPayoutController::class, 'index'])->middleware('permission:payouts.view');
+            Route::get('export', [AdminPayoutController::class, 'export'])->middleware('permission:payouts.view');
+            Route::get('settings', [AdminPayoutController::class, 'settings'])->middleware('permission:payouts.view');
+            Route::put('settings', [AdminPayoutController::class, 'updateSettings'])->middleware('permission:payouts.manage');
+            Route::get('contractors/{contractorId}', [AdminPayoutController::class, 'show'])->middleware('permission:payouts.view');
+            Route::post('contractors/{contractorId}/pay', [AdminPayoutController::class, 'pay'])->middleware('permission:payouts.manage');
+        });
+        Route::get('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'show'])->middleware('can:payouts.view');
+        Route::put('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'update'])->middleware('can:payouts.manage');
+        Route::delete('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'destroy'])->middleware('can:payouts.manage');
     });
 
     Route::prefix('public/join')->group(function () {
