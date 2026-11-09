@@ -9,6 +9,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Modules\Admin\Models\Service;
 use Modules\Admin\Models\ServiceCategory;
+use Illuminate\Support\Facades\Cache;
+use Modules\User\Models\Booking;
+
 
 /**
  * App side: what customers browse. Only active categories and services are shown.
@@ -65,6 +68,42 @@ class CatalogController extends Controller
         ])->values();
 
         return response()->json(['data' => $this->group($rows)->values()]);
+    }
+
+    /**
+     * GET /services/popular: the most booked services of the last 90 days.
+     * While there is little booking data it is topped up with the catalog's own order, so it is never empty.
+     * Cached for 10 minutes.
+     */
+    public function popular(): JsonResponse
+    {
+        $cards = Cache::remember('catalog.popular', 600, function () {
+            $counts = Booking::query()
+                ->whereIn('status', ['confirmed', 'assigned', 'in_progress', 'completed'])
+                ->where('created_at', '>=', now()->subDays(90))
+                ->selectRaw('service_id, count(*) as n')
+                ->groupBy('service_id')
+                ->pluck('n', 'service_id');
+
+            $rows = $this->activeServices()->with('category')->limit(300)->get()->sortBy([
+                fn (Service $a, Service $b) => $a->category->sort_order <=> $b->category->sort_order,
+                fn (Service $a, Service $b) => $a->sort_order <=> $b->sort_order,
+            ])->values();
+
+            return $this->group($rows)
+                ->map(fn (array $card) => [
+                    'card' => $card,
+                    'score' => collect($card['options'])->sum(fn ($o) => (int) ($counts[$o['id']] ?? 0)),
+                ])
+                ->values()
+                ->sort(fn ($a, $b) => [$b['score'], $a['card']['name']] <=> [$a['score'], $b['card']['name']])
+                ->take(8)
+                ->map(fn ($x) => $x['card'])
+                ->values()
+                ->all();
+        });
+
+        return response()->json(['data' => $cards]);
     }
 
     /** GET /services/{id}: the id of any option returns the whole service with all its options. */

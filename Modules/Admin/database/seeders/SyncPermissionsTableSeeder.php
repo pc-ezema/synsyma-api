@@ -99,6 +99,10 @@ class SyncPermissionsTableSeeder extends Seeder
         // Payouts
         'payouts.view'              => 'See the payouts and their details',
         'payouts.manage'            => 'Mark a payout as paid and send the contractor a notification',
+
+        // Review
+        'reviews.view'              => 'See the list of reviews',
+        'reviews.moderate'          => 'Moderate reviews',
     ];
 
     /**

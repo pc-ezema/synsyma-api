@@ -39,8 +39,8 @@ class BookingNotice extends Mailable
         $app = config('app.name', 'Synsyma');
 
         return $this->subject("{$this->headline} | {$app}")
-            ->view('user::emails.booking-notice')
-            ->text('user::emails.booking-notice-text')
+            ->view('emails.booking-notice')
+            ->text('emails.booking-notice-text')
             ->with([
                 'name' => $this->name,
                 'heading' => $this->headline,

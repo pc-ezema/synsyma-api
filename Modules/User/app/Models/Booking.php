@@ -93,6 +93,11 @@ class Booking extends Model
     {
         return $this->hasMany(BookingEvent::class, 'booking_id')->oldest();
     }
+
+    public function review(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\Modules\User\Models\Review::class, 'booking_id');
+    }
  
     public function payments(): HasMany
     {
@@ -203,6 +208,9 @@ class Booking extends Model
                 'payment' => $this->mainPayment()?->toArrayFlat(),
                 'payments' => $this->payments->map->toArrayFlat()->values(),
                 'events' => $this->events->map->toArrayFlat()->values(),
+                'review' => $this->review?->toArrayFlat($admin),
+                'can_review' => $this->status === 'completed' && $this->contractor_id !== null && ! $this->review,
+                'can_edit_review' => $this->review ? $this->review->canEdit() : false,
             ];
         }
  

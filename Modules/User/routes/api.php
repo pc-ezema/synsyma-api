@@ -7,20 +7,25 @@ use Modules\User\Http\Controllers\BannerController;
 use Modules\User\Http\Controllers\BookingChangeController;
 use Modules\User\Http\Controllers\CardController;
 use Modules\User\Http\Controllers\CatalogController;
+use Modules\User\Http\Controllers\HomeController;
 use Modules\User\Http\Controllers\NotificationController;
 use Modules\User\Http\Controllers\PaymentController;
 use Modules\User\Http\Controllers\PayPalController;
 use Modules\User\Http\Controllers\QuoteController;
+use Modules\User\Http\Controllers\ReviewController;
 use Modules\User\Http\Controllers\StripeWebhookController;
 use Modules\User\Http\Controllers\UserController;
 use Modules\User\Http\Middleware\EnsureUser;
 
 
 Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->group(function () {    
+    Route::get('home', [HomeController::class, 'summary']);
+
     Route::get('support/contacts', [UserController::class, 'contacts']);
     Route::delete('account', [UserController::class, 'destroy'])->middleware('throttle:5,1');
     Route::get('categories', [CatalogController::class, 'categories']);
     Route::get('services', [CatalogController::class, 'index']);
+    Route::get('services/popular', [CatalogController::class, 'popular']); 
     Route::get('services/{id}', [CatalogController::class, 'show']);
 
     Route::get('addresses', [AddressController::class, 'index']);
@@ -56,6 +61,8 @@ Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->grou
     Route::get('notifications/unread-count', [NotificationController::class, 'unread']);
     Route::post('notifications/read-all', [NotificationController::class, 'readAll']);
     Route::post('notifications/{id}/read', [NotificationController::class, 'read']);
+
+    Route::put('bookings/{id}/review', [ReviewController::class, 'save']);
 });
 Route::get('v1/public/support-contacts', [UserController::class, 'contacts'])->middleware('throttle:60,1');
 Route::post('v1/webhooks/paypal', [PayPalController::class, 'webhook']);

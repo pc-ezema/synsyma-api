@@ -56,6 +56,8 @@ return new class extends Migration
             $table->timestamp('quote_expires_at')->nullable()->index();
             $table->timestamp('quote_accepted_at')->nullable();
             $table->string('quote_message', 1000)->nullable(); 
+
+            $table->string('completion_note', 1000)->nullable();
  
             $table->string('notes', 1000)->nullable();               // from the customer
             $table->text('admin_notes')->nullable();                 // private
