@@ -13,3 +13,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('model:prune', ['--model' => [Otp::class, DeviceToken::class, AdminDeviceToken::class]])->daily();
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+Schedule::command('quotes:expire')->hourly();
+Schedule::command('notifications:quote-reminders')->hourly();

@@ -34,6 +34,8 @@ class Booking extends Model
         'completed' => [],
         'cancelled' => [],
         'refunded' => [],
+        'quote_requested' => ['quote_sent', 'cancelled'],
+        'quote_sent' => ['quote_requested', 'pending_payment', 'cancelled'],
     ];
 
     /**
@@ -46,7 +48,8 @@ class Booking extends Model
     protected $casts = [
         'starts_at' => 'datetime', 'assigned_at' => 'datetime', 'completed_at' => 'datetime', 'cancelled_at' => 'datetime',
         'base_price' => 'decimal:2', 'additional_hour_price' => 'decimal:2', 'subtotal' => 'decimal:2',
-        'discount_total' => 'decimal:2', 'tax_total' => 'decimal:2', 'total' => 'decimal:2',
+        'discount_total' => 'decimal:2', 'tax_total' => 'decimal:2', 'total' => 'decimal:2', 
+        'quote_sent_at' => 'datetime', 'quote_expires_at' => 'datetime', 'quote_accepted_at' => 'datetime'
     ];
 
     // Automatically generate when creating a new record
@@ -159,7 +162,7 @@ class Booking extends Model
             'discount_total' => $this->discount_total,
             'tax_total' => $this->tax_total,
             'total' => $this->total,
-            'total_label' => $this->price_type === 'quote' ? 'Quote' : $this->money($this->total),
+            'total_label' => ($this->price_type === 'quote' && (float) $this->total <= 0) ? 'Quote' : $this->money($this->total),
             'starts_at' => $this->starts_at?->toIso8601String(),
             'starts_at_local' => $local?->format('Y-m-d\TH:i'),
             'timezone' => $this->timezone,
@@ -176,6 +179,7 @@ class Booking extends Model
             'included_hours' => $this->included_hours,
             'extra_hours' => (int) $this->extra_hours,
             'reschedule_count' => (int) $this->reschedule_count,
+            'quote' => \Modules\Admin\Support\Quotes::info($this),   // in the User model: \Modules\User\Support\Quotes::info($this)
             'created_at' => $this->created_at?->toIso8601String(),
         ];
  

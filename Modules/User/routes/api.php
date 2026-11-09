@@ -7,8 +7,10 @@ use Modules\User\Http\Controllers\BannerController;
 use Modules\User\Http\Controllers\BookingChangeController;
 use Modules\User\Http\Controllers\CardController;
 use Modules\User\Http\Controllers\CatalogController;
+use Modules\User\Http\Controllers\NotificationController;
 use Modules\User\Http\Controllers\PaymentController;
 use Modules\User\Http\Controllers\PayPalController;
+use Modules\User\Http\Controllers\QuoteController;
 use Modules\User\Http\Controllers\StripeWebhookController;
 use Modules\User\Http\Controllers\UserController;
 use Modules\User\Http\Middleware\EnsureUser;
@@ -46,6 +48,14 @@ Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->grou
 
     Route::get('cards', [CardController::class, 'index']);
     Route::delete('cards/{id}', [CardController::class, 'destroy']);
+
+    Route::post('bookings/{id}/quote/accept', [QuoteController::class, 'accept']);
+    Route::post('bookings/{id}/quote/decline', [QuoteController::class, 'decline']);
+
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications/unread-count', [NotificationController::class, 'unread']);
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll']);
+    Route::post('notifications/{id}/read', [NotificationController::class, 'read']);
 });
 Route::get('v1/public/support-contacts', [UserController::class, 'contacts'])->middleware('throttle:60,1');
 Route::post('v1/webhooks/paypal', [PayPalController::class, 'webhook']);

@@ -31,6 +31,8 @@ class BookingEvent extends Model
                 $model->id = (string) Str::uuid();
             }
         });
+
+        static::created(fn ($event) => \Modules\User\Support\Notifier::onEvent($event));
     }
 
     public function toArrayFlat(): array

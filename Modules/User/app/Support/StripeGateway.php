@@ -79,8 +79,11 @@ class StripeGateway
     /** Why this booking cannot be paid right now, or null if it can. */
     public function blocker(Booking $b): ?string
     {
-        if ($b->price_type === 'quote') {
-            return 'This service is priced by quote.';
+        if ($b->status === 'quote_requested') {
+            return 'This quote has not been priced yet.';
+        }
+        if ($b->status === 'quote_sent') {
+            return 'Accept the quote before paying.';
         }
         if ($b->status !== 'pending_payment') {
             return $b->status === 'cancelled' ? 'This booking was cancelled.' : 'This booking is already paid.';
@@ -204,8 +207,8 @@ class StripeGateway
                 'metadata' => ['booking_id' => $b->id, 'reference' => $b->reference, 'user_id' => (string) $user->id, 'purpose' => $purpose],
             ],
             'saved_payment_method_options' => [
-                'payment_method_save' => 'enabled',                         // shows "Save my card for next time"
-                'allow_redisplay_filter' => ['always', 'limited', 'unspecified'], // also shows cards saved before this change
+                'payment_method_save' => 'enabled',                          // shows "Save my card for next time"
+                'allow_redisplay_filters' => ['always', 'limited', 'unspecified'], // also shows cards saved before this change
             ],
             'metadata' => ['booking_id' => $b->id],
             'success_url' => $returnUrl . $sep . 'paid=1',

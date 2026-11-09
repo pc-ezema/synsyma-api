@@ -9,8 +9,10 @@ use Modules\Admin\Http\Controllers\AdminChatController;
 use Modules\Admin\Http\Controllers\AdminController;
 use Modules\Admin\Http\Controllers\AdminPaymentController;
 use Modules\Admin\Http\Controllers\AdminPayoutController;
+use Modules\Admin\Http\Controllers\AdminPayoutDetailsController;
 use Modules\Admin\Http\Controllers\AdminPromoBannerController;
 use Modules\Admin\Http\Controllers\AdminPromoCodeController;
+use Modules\Admin\Http\Controllers\AdminQuoteController;
 use Modules\Admin\Http\Controllers\AuthController;
 use Modules\Admin\Http\Controllers\ContractorCampaignController;
 use Modules\Admin\Http\Controllers\ContractorController;
@@ -169,6 +171,8 @@ Route::prefix('v1/admin')->group(function () {
             Route::patch('{id}/notes', [AdminBookingController::class, 'updateNotes'])->middleware('permission:bookings.manage');
             Route::post('{id}/refund', [AdminBookingController::class, 'refund'])->middleware('permission:bookings.manage');
             Route::patch('{id}/reschedule', [AdminBookingController::class, 'reschedule'])->middleware('permission:bookings.manage');
+            Route::post('/{id}/quote', [AdminQuoteController::class, 'send'])->middleware('permission:bookings.manage');
+            Route::delete('/{id}/quote', [AdminQuoteController::class, 'withdraw'])->middleware('permission:bookings.manage');
         });
         Route::get('booking-policy', [AdminBookingPolicyController::class, 'show'])->middleware('permission:bookings.manage');
         Route::put('booking-policy', [AdminBookingPolicyController::class, 'update'])->middleware('permission:bookings.manage');
@@ -198,9 +202,9 @@ Route::prefix('v1/admin')->group(function () {
             Route::get('contractors/{contractorId}', [AdminPayoutController::class, 'show'])->middleware('permission:payouts.view');
             Route::post('contractors/{contractorId}/pay', [AdminPayoutController::class, 'pay'])->middleware('permission:payouts.manage');
         });
-        Route::get('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'show'])->middleware('can:payouts.view');
-        Route::put('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'update'])->middleware('can:payouts.manage');
-        Route::delete('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'destroy'])->middleware('can:payouts.manage');
+        Route::get('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'show'])->middleware('permission:payouts.view');
+        Route::put('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'update'])->middleware('permission:payouts.manage');
+        Route::delete('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'destroy'])->middleware('permission:payouts.manage');
     });
 
     Route::prefix('public/join')->group(function () {

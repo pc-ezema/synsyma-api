@@ -51,6 +51,11 @@ return new class extends Migration
             $table->string('promo_code', 40)->nullable();
             $table->unsignedTinyInteger('reschedule_count')->default(0);
             $table->unsignedTinyInteger('extra_hours')->default(0);
+
+            $table->timestamp('quote_sent_at')->nullable();
+            $table->timestamp('quote_expires_at')->nullable()->index();
+            $table->timestamp('quote_accepted_at')->nullable();
+            $table->string('quote_message', 1000)->nullable(); 
  
             $table->string('notes', 1000)->nullable();               // from the customer
             $table->text('admin_notes')->nullable();                 // private
