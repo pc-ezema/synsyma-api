@@ -29,8 +29,8 @@ class UserController extends Controller
             throw ValidationException::withMessages(['password' => 'That password is not correct.']);
         }
 
-        DB::transaction(function () use ($user, $data, $request) {
-            AccountDeletion::create([
+        $deletion = DB::transaction(function () use ($user, $data, $request) {          // NEW: keep the result
+            $d = AccountDeletion::create([                                              // NEW: $d
                 'user_id' => $user->id,
                 'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->name ?? 'Unknown'),
                 'email' => $user->email,
@@ -45,7 +45,11 @@ class UserController extends Controller
             DeviceToken::where('user_id', $user->id)->delete(); // stop pushes to their phone
             $user->tokens()->delete();                          // sign out everywhere
             // $user->delete();
+
+            return $d;                                          // NEW
         });
+
+        \Modules\Admin\Support\AdminNotifier::deletion($deletion);   // NEW: tells the admin team (never throws)
 
         return response()->json(['message' => 'Your account has been deleted.', 'data' => []]);
     }

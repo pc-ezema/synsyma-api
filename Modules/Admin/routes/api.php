@@ -7,6 +7,7 @@ use Modules\Admin\Http\Controllers\AdminBookingController;
 use Modules\Admin\Http\Controllers\AdminBookingPolicyController;
 use Modules\Admin\Http\Controllers\AdminChatController;
 use Modules\Admin\Http\Controllers\AdminController;
+use Modules\Admin\Http\Controllers\AdminNotificationController;
 use Modules\Admin\Http\Controllers\AdminPaymentController;
 use Modules\Admin\Http\Controllers\AdminPayoutController;
 use Modules\Admin\Http\Controllers\AdminPayoutDetailsController;
@@ -14,6 +15,7 @@ use Modules\Admin\Http\Controllers\AdminPromoBannerController;
 use Modules\Admin\Http\Controllers\AdminPromoCodeController;
 use Modules\Admin\Http\Controllers\AdminQuoteController;
 use Modules\Admin\Http\Controllers\AdminReviewController;
+use Modules\Admin\Http\Controllers\AdminUserController;
 use Modules\Admin\Http\Controllers\AuthController;
 use Modules\Admin\Http\Controllers\ContractorCampaignController;
 use Modules\Admin\Http\Controllers\ContractorController;
@@ -209,6 +211,19 @@ Route::prefix('v1/admin')->group(function () {
 
         Route::get('reviews', [AdminReviewController::class, 'index'])->middleware('permission:reviews.view');
         Route::patch('reviews/{id}/visibility', [AdminReviewController::class, 'visibility'])->middleware('permission:reviews.moderate');
+
+        Route::get('users', [AdminUserController::class, 'index'])->middleware('permission:users.view');
+        Route::get('users/{id}', [AdminUserController::class, 'show'])->middleware('permission:users.view');
+        Route::patch('users/{id}/status', [AdminUserController::class, 'status'])->middleware('permission:users.manage');
+
+        Route::get('notifications', [AdminNotificationController::class, 'index']);
+        Route::get('notifications/unread-count', [AdminNotificationController::class, 'unreadCount']);
+        Route::get('notifications/preferences', [AdminNotificationController::class, 'preferences']);
+        Route::put('notifications/preferences', [AdminNotificationController::class, 'savePreferences']);
+        Route::post('notifications/read-all', [AdminNotificationController::class, 'readAll']);
+        Route::post('notifications/devices', [AdminNotificationController::class, 'registerDevice']);
+        Route::delete('notifications/devices', [AdminNotificationController::class, 'forgetDevice']);
+        Route::post('notifications/{id}/read', [AdminNotificationController::class, 'read']);
     });
 
     Route::prefix('public/join')->group(function () {

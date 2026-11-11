@@ -103,6 +103,10 @@ class SyncPermissionsTableSeeder extends Seeder
         // Review
         'reviews.view'              => 'See the list of reviews',
         'reviews.moderate'          => 'Moderate reviews',
+
+        // User
+        'users.view'                => 'See the list of users',
+        'users.manage'              => 'Switch off or delete a user',
     ];
 
     /**

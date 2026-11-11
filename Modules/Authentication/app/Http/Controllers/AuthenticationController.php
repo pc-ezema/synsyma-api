@@ -71,7 +71,7 @@ class AuthenticationController extends Controller
         }
 
         if (! $user->is_active) {
-            return response()->json(['message' => 'This account has been disabled.'], 403);
+           return response()->json(['message' => 'This account has been deactivated. Please contact support.'], 403);
         }
 
         if (! $user->email_verified_at) {

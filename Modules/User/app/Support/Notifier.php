@@ -18,6 +18,8 @@ class Notifier
     /** Called from BookingEvent::created (both the Admin and the User model). */
     public static function onEvent($event): void
     {
+        \Modules\Admin\Support\AdminNotifier::onEvent($event);
+        
         try {
             $b = Booking::with('user')->find($event->booking_id);
             if (! $b || ! $b->user_id) {
