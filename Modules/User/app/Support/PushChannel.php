@@ -20,6 +20,7 @@ class PushChannel
             if (! $tokens) {
                 return;
             }
+            $data['badge'] = UnreadCount::for($userId); // counted after the new notification was saved, so it includes it
             self::deliver($tokens, $title, $body, array_map('strval', $data));
         } catch (\Throwable $e) {
             Log::warning('Push failed', ['user' => $userId, 'error' => $e->getMessage()]);
@@ -35,8 +36,13 @@ class PushChannel
         }
 
         $messaging = app(\Kreait\Firebase\Contract\Messaging::class);
+        // The red number on the app icon. iOS reads it from the push; Android shows it as the notification count.
+        $badge = isset($data['badge']) ? (int) $data['badge'] : 0;
+
         $message = \Kreait\Firebase\Messaging\CloudMessage::new()
             ->withNotification(\Kreait\Firebase\Messaging\Notification::create($title, $body))
+            ->withApnsConfig(\Kreait\Firebase\Messaging\ApnsConfig::fromArray(['payload' => ['aps' => ['badge' => $badge, 'sound' => 'default']]]))
+            ->withAndroidConfig(\Kreait\Firebase\Messaging\AndroidConfig::fromArray(['notification' => ['notification_count' => max(1, $badge)]]))
             ->withData($data);
 
         $report = $messaging->sendMulticast($message, $tokens);
