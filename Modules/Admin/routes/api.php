@@ -204,10 +204,10 @@ Route::prefix('v1/admin')->group(function () {
             Route::put('settings', [AdminPayoutController::class, 'updateSettings'])->middleware('permission:payouts.manage');
             Route::get('contractors/{contractorId}', [AdminPayoutController::class, 'show'])->middleware('permission:payouts.view');
             Route::post('contractors/{contractorId}/pay', [AdminPayoutController::class, 'pay'])->middleware('permission:payouts.manage');
+            Route::get('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'show'])->middleware('permission:payouts.view');
+            Route::put('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'update'])->middleware('permission:payouts.manage');
+            Route::delete('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'destroy'])->middleware('permission:payouts.manage');
         });
-        Route::get('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'show'])->middleware('permission:payouts.view');
-        Route::put('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'update'])->middleware('permission:payouts.manage');
-        Route::delete('contractors/{contractorId}/details', [AdminPayoutDetailsController::class, 'destroy'])->middleware('permission:payouts.manage');
 
         Route::get('reviews', [AdminReviewController::class, 'index'])->middleware('permission:reviews.view');
         Route::patch('reviews/{id}/visibility', [AdminReviewController::class, 'visibility'])->middleware('permission:reviews.moderate');
