@@ -19,7 +19,7 @@ class Notifier
     public static function onEvent($event): void
     {
         \Modules\Admin\Support\AdminNotifier::onEvent($event);
-        
+
         try {
             $b = Booking::with('user')->find($event->booking_id);
             if (! $b || ! $b->user_id) {
@@ -98,6 +98,7 @@ class Notifier
 
             case 'status':
                 return match ($e->to_status) {
+                    'en_route' => ['type' => 'contractor_on_way', 'title' => 'Your contractor is on the way', 'body' => (($b->contractor?->name) ?: 'Your contractor') . " is on the way for your {$svc}."],
                     'in_progress' => ['type' => 'job_started', 'title' => 'Your job has started', 'body' => "The team has started your {$svc}.", 'email' => false],
                     'completed' => ['type' => 'job_completed', 'title' => 'Job completed', 'body' => "Your {$svc} is finished. Thank you for choosing Synsyma. If anything is not right, message us from the booking."],
                     'cancelled' => $byCustomer ? null : [

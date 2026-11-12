@@ -22,6 +22,8 @@ class AdminBookingPolicyController extends Controller
             'free_cancel_hours' => ['required', 'integer', 'min:1', 'max:720'],
             'late_cancel_hours' => ['required', 'integer', 'min:0', 'max:720'],
             'late_cancel_fee_percent' => ['required', 'integer', 'min:0', 'max:100'],
+            'call_out_fee_percent' => ['required', 'integer', 'min:0', 'max:100'],
+            'auto_complete_hours' => ['required', 'integer', 'min:0', 'max:720'],
             'free_reschedules' => ['required', 'integer', 'min:0', 'max:10'],
             'max_extra_hours' => ['required', 'integer', 'min:0', 'max:12'],
         ]);

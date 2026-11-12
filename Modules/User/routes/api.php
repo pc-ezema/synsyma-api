@@ -5,6 +5,8 @@ use Modules\User\Http\Controllers\BookingController;
 use Modules\User\Http\Controllers\AddressController;
 use Modules\User\Http\Controllers\BannerController;
 use Modules\User\Http\Controllers\BookingChangeController;
+use Modules\User\Http\Controllers\BookingCompletionController;
+use Modules\User\Http\Controllers\BookingRulesController;
 use Modules\User\Http\Controllers\CardController;
 use Modules\User\Http\Controllers\CatalogController;
 use Modules\User\Http\Controllers\HomeController;
@@ -63,6 +65,11 @@ Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->grou
     Route::post('notifications/{id}/read', [NotificationController::class, 'read']);
 
     Route::put('bookings/{id}/review', [ReviewController::class, 'save']);
+
+    Route::post('bookings/{id}/complete', [BookingCompletionController::class, 'complete']);
+    Route::post('bookings/{id}/problem', [BookingCompletionController::class, 'reportProblem']);
+
+    Route::get('bookings/rules', [BookingRulesController::class, 'show']);
 });
 Route::get('v1/public/support-contacts', [UserController::class, 'contacts'])->middleware('throttle:60,1');
 Route::post('v1/webhooks/paypal', [PayPalController::class, 'webhook']);

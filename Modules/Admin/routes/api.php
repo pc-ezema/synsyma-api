@@ -15,7 +15,9 @@ use Modules\Admin\Http\Controllers\AdminPromoBannerController;
 use Modules\Admin\Http\Controllers\AdminPromoCodeController;
 use Modules\Admin\Http\Controllers\AdminQuoteController;
 use Modules\Admin\Http\Controllers\AdminReviewController;
+use Modules\Admin\Http\Controllers\AdminSettingController;
 use Modules\Admin\Http\Controllers\AdminUserController;
+use Modules\Admin\Http\Controllers\AdminUserEmailController;
 use Modules\Admin\Http\Controllers\AuthController;
 use Modules\Admin\Http\Controllers\ContractorCampaignController;
 use Modules\Admin\Http\Controllers\ContractorController;
@@ -25,6 +27,7 @@ use Modules\Admin\Http\Controllers\ServiceCategoryController;
 use Modules\Admin\Http\Controllers\ServiceController;
 use Modules\Admin\Http\Controllers\SupportContactController;
 use Modules\Admin\Http\Middleware\EnsureAdmin;
+use Modules\User\Http\Controllers\AdminBookingProblemController;
 
 Route::prefix('v1/admin')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
@@ -176,6 +179,7 @@ Route::prefix('v1/admin')->group(function () {
             Route::patch('{id}/reschedule', [AdminBookingController::class, 'reschedule'])->middleware('permission:bookings.manage');
             Route::post('/{id}/quote', [AdminQuoteController::class, 'send'])->middleware('permission:bookings.manage');
             Route::delete('/{id}/quote', [AdminQuoteController::class, 'withdraw'])->middleware('permission:bookings.manage');
+            Route::post('/{id}/problem/resolve', [AdminBookingProblemController::class, 'resolve'])->middleware('permission:bookings.manage');
         });
         Route::get('booking-policy', [AdminBookingPolicyController::class, 'show'])->middleware('permission:bookings.manage');
         Route::put('booking-policy', [AdminBookingPolicyController::class, 'update'])->middleware('permission:bookings.manage');
@@ -215,6 +219,8 @@ Route::prefix('v1/admin')->group(function () {
         Route::get('users', [AdminUserController::class, 'index'])->middleware('permission:users.view');
         Route::get('users/{id}', [AdminUserController::class, 'show'])->middleware('permission:users.view');
         Route::patch('users/{id}/status', [AdminUserController::class, 'status'])->middleware('permission:users.manage');
+        Route::post('users/{id}/email', [AdminUserEmailController::class, 'start'])->middleware('permission:users.change_email');
+        Route::delete('users/{id}/email', [AdminUserEmailController::class, 'cancel'])->middleware('permission:users.change_email');
 
         Route::get('notifications', [AdminNotificationController::class, 'index']);
         Route::get('notifications/unread-count', [AdminNotificationController::class, 'unreadCount']);
@@ -224,6 +230,9 @@ Route::prefix('v1/admin')->group(function () {
         Route::post('notifications/devices', [AdminNotificationController::class, 'registerDevice']);
         Route::delete('notifications/devices', [AdminNotificationController::class, 'forgetDevice']);
         Route::post('notifications/{id}/read', [AdminNotificationController::class, 'read']);
+
+        Route::get('settings', [AdminSettingController::class, 'show'])->middleware('permission:settings.view');
+        Route::put('settings', [AdminSettingController::class, 'update'])->middleware('permission:settings.manage');
     });
 
     Route::prefix('public/join')->group(function () {

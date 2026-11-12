@@ -22,7 +22,8 @@ class BookingPolicy extends Model
     protected $guarded = [];
     
     protected $casts = [
-        'free_cancel_hours' => 'integer', 'late_cancel_hours' => 'integer', 'late_cancel_fee_percent' => 'integer',
+        'free_cancel_hours' => 'integer', 'late_cancel_hours' => 'integer', 'late_cancel_fee_percent' => 'integer', 'call_out_fee_percent' => 'integer',
+        'auto_complete_hours' => 'integer',
         'free_reschedules' => 'integer', 'max_extra_hours' => 'integer',
     ];
 
@@ -45,6 +46,6 @@ class BookingPolicy extends Model
 
     public function toArrayFlat(): array
     {
-        return $this->only(['free_cancel_hours', 'late_cancel_hours', 'late_cancel_fee_percent', 'free_reschedules', 'max_extra_hours']);
+        return $this->only(['free_cancel_hours', 'late_cancel_hours', 'late_cancel_fee_percent', 'call_out_fee_percent', 'auto_complete_hours', 'free_reschedules', 'max_extra_hours']);
     }
 }

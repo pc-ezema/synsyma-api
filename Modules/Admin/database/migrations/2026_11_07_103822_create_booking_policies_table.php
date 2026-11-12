@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('late_cancel_fee_percent')->default(50);
             $table->unsignedTinyInteger('free_reschedules')->default(1);         // used in the reschedule step
             $table->unsignedTinyInteger('max_extra_hours')->default(4);          // used in the add-hours step
+            $table->unsignedTinyInteger('call_out_fee_percent')->default(50);   //
             $table->timestamps();
         });
     }

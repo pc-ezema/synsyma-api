@@ -36,7 +36,7 @@ class Ledger
     }
 
     /** Called when a booking becomes completed. Safe to call twice. */
-    public static function onCompleted(Booking $b): void
+    public static function onCompleted(Booking $b, ?string $note = null): void
     {
         if (! $b->contractor_id) {
             return;
@@ -54,7 +54,7 @@ class Ledger
             PayoutEntry::create([
                 'contractor_id' => $b->contractor_id, 'booking_id' => $b->id, 'type' => 'earning', 'unique_key' => 'earning:' . $b->id,
                 'amount' => $earning, 'gross' => $net, 'commission_percent' => $pct, 'currency' => $b->currency ?: 'USD',
-                'note' => null, 'payable_at' => ($b->completed_at ?? now())->copy()->addDays($hold),
+                'note' => $note, 'payable_at' => ($b->completed_at ?? now())->copy()->addDays($hold),
             ]);
         } catch (QueryException $e) {
             // Already created by another request: that is fine.

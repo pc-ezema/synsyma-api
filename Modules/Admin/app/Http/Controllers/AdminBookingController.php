@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\User\Models\Booking;
 use Modules\Admin\Models\Contractor;
-use Modules\User\Support\CancellationPolicy;
+use Modules\Admin\Support\CancellationPolicy;
 use Modules\User\Support\StripeGateway;
 
 /** Admin: see every booking, assign a contractor, move it along. */
@@ -114,7 +114,8 @@ class AdminBookingController extends Controller
         $to = $data['status'];
         $note = trim((string) ($data['note'] ?? '')) ?: null;
 
-        if ($to === 'assigned') {
+        // "Back to assigned" is allowed only from "on the way" (the contractor stays). Otherwise use Assign contractor.
+        if ($to === 'assigned' && $booking->status !== 'en_route') {
             throw ValidationException::withMessages(['status' => 'Use Assign contractor to assign a booking.']);
         }
         if (! in_array($to, Booking::TRANSITIONS[$booking->status] ?? [], true)) {
@@ -151,6 +152,11 @@ class AdminBookingController extends Controller
         }
         $booking->save();
         $booking->log('status', 'admin', $from, $to, trim(($note ?? '') . $refundNote) ?: null);
+
+        // Cancelled after the contractor was already on the way: the call-out fee the customer kept is the contractor's pay.
+        if ($to === 'cancelled' && $from === 'en_route' && $booking->contractor_id) {
+            \Modules\Admin\Support\Ledger::onCompleted($booking->fresh(), 'Call-out fee: cancelled after the contractor was on the way.');
+        }
 
         return response()->json(['message' => 'Booking updated.', 'data' => $this->load($id)->toArrayFlat(true, true)]);
     }

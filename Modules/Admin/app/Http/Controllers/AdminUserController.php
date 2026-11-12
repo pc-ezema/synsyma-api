@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Modules\User\Models\Booking;
 use Modules\User\Models\Payment;
+use Modules\User\Models\UserEmailChange;
 use Modules\Chat\Models\DeviceToken;
 use Modules\User\Models\Review;
 
@@ -168,6 +169,7 @@ class AdminUserController extends Controller
             'terms_version' => $u->terms_version,
             'deactivated_at' => $this->iso($u->deactivated_at),
             'deactivation_reason' => $u->deactivation_reason,
+            'email_changes' => UserEmailChange::historyFor($u->id),
             'stats' => [
                 'bookings' => (int) $byStatus->sum(),
                 'completed' => (int) ($byStatus['completed'] ?? 0),

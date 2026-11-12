@@ -36,7 +36,8 @@ class ReviewController extends Controller
 
             if ($review) {
                 if (! $review->canEdit()) {
-                    throw ValidationException::withMessages(['rating' => ['Reviews can be changed for ' . Review::EDIT_DAYS . ' days after you send them.']]);
+                    $h = (int) \Modules\Admin\Models\AppSetting::current()->review_edit_hours;
+                    throw ValidationException::withMessages(['rating' => [$h > 0 ? 'Reviews can be changed for ' . ($h % 24 === 0 ? ($h / 24) . ($h === 24 ? ' day' : ' days') : $h . ' hours') . ' after you send them.' : 'Reviews cannot be changed after you send them.']]);
                 }
                 $review->forceFill(['rating' => $data['rating'], 'comment' => $comment, 'edited_at' => now()])->save();
                 $b->log('review_edited', 'customer', null, null, 'Changed the review to ' . $data['rating'] . ' stars.');

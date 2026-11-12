@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\User\Http\Controllers\EmailChangeController;
 
 if (app()->environment('local')) {
     Route::get('/mail-preview', fn () => view('emails.otp', [
@@ -23,3 +24,6 @@ if (app()->environment('local')) {
         'supportEmail' => config('mail.from.address'),
     ]));
 }
+
+Route::get('email-change/confirm/{token}', [EmailChangeController::class, 'show'])->middleware('throttle:30,1')->name('email-change.show');
+Route::post('email-change/confirm/{token}', [EmailChangeController::class, 'confirm'])->middleware('throttle:10,1')->name('email-change.confirm');

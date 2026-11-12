@@ -19,24 +19,23 @@ class Booking extends Model
     protected $keyType = 'string';
 
     public const STATUSES = [
-        'pending_payment', 'confirmed', 'assigned', 'in_progress', 'completed',
+        'pending_payment', 'confirmed', 'assigned', 'en_route', 'in_progress', 'completed',
         'cancelled', 'refunded', 'quote_requested', 'quote_sent',
     ];
- 
-    /** Which status can follow which. "assigned" is only reached through the assign action. */
+
     public const TRANSITIONS = [
         'pending_payment' => ['confirmed', 'cancelled'],
         'confirmed' => ['cancelled'],
-        'assigned' => ['confirmed', 'in_progress', 'cancelled'],
+        'assigned' => ['confirmed', 'en_route', 'in_progress', 'cancelled'],
+        'en_route' => ['assigned', 'in_progress', 'cancelled'],
         'in_progress' => ['completed', 'cancelled'],
-        'quote_requested' => ['quote_sent', 'cancelled'],
-        'quote_sent' => ['cancelled'],
         'completed' => [],
         'cancelled' => [],
         'refunded' => [],
         'quote_requested' => ['quote_sent', 'cancelled'],
         'quote_sent' => ['quote_requested', 'pending_payment', 'cancelled'],
     ];
+
 
     /**
      * The attributes that are mass assignable.
@@ -49,7 +48,8 @@ class Booking extends Model
         'starts_at' => 'datetime', 'assigned_at' => 'datetime', 'completed_at' => 'datetime', 'cancelled_at' => 'datetime',
         'base_price' => 'decimal:2', 'additional_hour_price' => 'decimal:2', 'subtotal' => 'decimal:2',
         'discount_total' => 'decimal:2', 'tax_total' => 'decimal:2', 'total' => 'decimal:2', 
-        'quote_sent_at' => 'datetime', 'quote_expires_at' => 'datetime', 'quote_accepted_at' => 'datetime'
+        'quote_sent_at' => 'datetime', 'quote_expires_at' => 'datetime', 'quote_accepted_at' => 'datetime',
+        'problem_reported_at' => 'datetime',
     ];
 
     // Automatically generate when creating a new record
@@ -66,7 +66,10 @@ class Booking extends Model
         static::updated(function (Booking $b) {
             if ($b->wasChanged('status') && $b->status === 'completed') {
                 try {
-                    \Modules\Admin\Support\Ledger::onCompleted($b);
+                    // The ledger works on the Admin Booking model, so hand it that one.
+                    if ($admin = \Modules\User\Models\Booking::find($b->id)) {
+                        \Modules\Admin\Support\Ledger::onCompleted($admin);
+                    }
                 } catch (\Throwable $e) {
                     report($e); // never block completing a job; php artisan payouts:backfill fixes any gap
                 }
@@ -205,6 +208,9 @@ class Booking extends Model
                 'assigned_at' => $this->assigned_at?->toIso8601String(),
                 'completed_at' => $this->completed_at?->toIso8601String(),
                 'cancelled_at' => $this->cancelled_at?->toIso8601String(),
+                'completed_by' => $this->completed_by,
+                'problem_reported_at' => $this->problem_reported_at?->toIso8601String(),
+                'problem_note' => $this->problem_note,
                 'payment' => $this->mainPayment()?->toArrayFlat(),
                 'payments' => $this->payments->map->toArrayFlat()->values(),
                 'events' => $this->events->map->toArrayFlat()->values(),
@@ -220,7 +226,8 @@ class Booking extends Model
                 ? \Modules\User\Support\CancellationPolicy::quote($this)
                 : null;
             $row['refundable'] = round($this->payments->whereIn('status', ['succeeded', 'partially_refunded'])->sum(fn ($p) => max(0, (float) $p->amount - (float) $p->refunded_total)), 2);
-            $row['ledger'] = \Modules\Admin\Support\Ledger::forBooking($this);
+            $adminCopy = \Modules\User\Models\Booking::find($this->id);
+            $row['ledger'] = $adminCopy ? \Modules\Admin\Support\Ledger::forBooking($adminCopy) : null;
         }
  
         return $row;

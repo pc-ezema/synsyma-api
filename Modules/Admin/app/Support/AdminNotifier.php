@@ -26,6 +26,8 @@ class AdminNotifier
         'quote_requested' => ['label' => 'Quote requested', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
         'low_review' => ['label' => 'Low rating', 'permission' => 'reviews.view', 'push' => true, 'email' => false],
         'payment_failed' => ['label' => 'Payment problem', 'permission' => 'bookings.manage', 'push' => false, 'email' => false],
+        'problem_reported' => ['label' => 'Customer reported a problem', 'permission' => 'bookings.manage', 'push' => true, 'email' => true],
+        'customer_completed' => ['label' => 'Customer completed a job', 'permission' => 'bookings.manage', 'push' => false, 'email' => false],
         'deletion_request' => ['label' => 'Account deleted', 'permission' => 'deletions.view', 'push' => true, 'email' => false],
     ];
 
@@ -52,7 +54,7 @@ class AdminNotifier
 
                 case 'payment_succeeded':
                 case 'payment_received':
-                    if (! $b->contractor_id && ! in_array($b->status, ['cancelled', 'refunded', 'completed', 'in_progress'], true)) {
+                    if (! $b->contractor_id && ! in_array($b->status, ['cancelled', 'refunded', 'completed', 'in_progress', 'en_route'], true)) {
                         self::toAssign($b, $who, $svc, $link);
                     }
                     break;

@@ -29,6 +29,7 @@ class BookingChangeController extends Controller
         return response()->json(['data' => [
             'reschedule' => BookingChanges::rescheduleRules($b),
             'extra_hours' => BookingChanges::extraHoursRules($b),
+            'complete' => \Modules\User\Support\BookingCompletion::state(\Modules\User\Models\Booking::findOrFail($b->id)),
         ]]);
     }
 
@@ -73,6 +74,14 @@ class BookingChangeController extends Controller
                 $note .= ' Reason: ' . $reason;
             }
             $booking->log('cancelled', 'customer', $from, 'cancelled', $note);
+
+            // The contractor was already on the way: the fee that is kept is theirs.
+            // The ledger works on the Admin Booking model, so hand it that one.
+            if ($from === 'en_route' && $booking->contractor_id && $q['fee'] > 0) {
+                if ($adminBooking = \Modules\User\Models\Booking::find($booking->id)) {
+                    \Modules\Admin\Support\Ledger::onCompleted($adminBooking, 'Call-out fee: cancelled after the contractor was on the way.');
+                }
+            }
 
             return ['refunded' => $refunded];
         });

@@ -15,3 +15,4 @@ Schedule::command('model:prune', ['--model' => [Otp::class, DeviceToken::class, 
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
 Schedule::command('quotes:expire')->hourly();
 Schedule::command('notifications:quote-reminders')->hourly();
+Schedule::command('bookings:auto-complete')->hourly();

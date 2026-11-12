@@ -107,6 +107,11 @@ class SyncPermissionsTableSeeder extends Seeder
         // User
         'users.view'                => 'See the list of users',
         'users.manage'              => 'Switch off or delete a user',
+        'users.change_email'        => 'Change the email address of a user',
+
+        // Settings
+        'settings.view'             => 'See the settings',
+        'settings.manage'           => 'Manage the business details, booking time rules, default settings and support contacts',
     ];
 
     /**

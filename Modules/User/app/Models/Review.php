@@ -16,7 +16,7 @@ class Review extends Model
 
     protected $keyType = 'string';
 
-    /** How long the customer can still change their review. */
+    /** Old fixed window. The real value is now "review_edit_hours" in Settings. */
     public const EDIT_DAYS = 7;
 
     protected $table = 'reviews';
@@ -52,9 +52,12 @@ class Review extends Model
         return $this->belongsTo(\Modules\Admin\Models\Contractor::class);
     }
 
+    /** How long the customer can change their review is an admin setting. 0 means reviews are final. */
     public function canEdit(): bool
     {
-        return $this->created_at !== null && $this->created_at->gt(now()->subDays(self::EDIT_DAYS));
+        $hours = (int) \Modules\Admin\Models\AppSetting::current()->review_edit_hours;
+
+        return $hours > 0 && $this->created_at !== null && $this->created_at->gt(now()->subHours($hours));
     }
 
     /** The admin flag exposes moderation fields. The customer only ever sees their own review. */

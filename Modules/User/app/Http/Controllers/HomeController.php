@@ -20,19 +20,19 @@ use Modules\Admin\Support\Quotes;
 class HomeController extends Controller
 {
     private const DONE = ['completed', 'cancelled', 'refunded'];
-
+ 
     public function summary(Request $request): JsonResponse
     {
         $uid = $request->user()->id;
-
+ 
         $open = Booking::with(['service', 'contractor'])
             ->where('user_id', $uid)
             ->whereNotIn('status', self::DONE)
             ->orderBy('starts_at')
             ->get();
-
+ 
         $actions = [];
-
+ 
         foreach ($open as $b) {
             if ($b->status === 'pending_payment' && (float) $b->total > 0) {
                 $actions[] = $this->action('pay', $b, 'Pay to confirm your booking', $b->service_name . ' · ' . $b->money($b->total));
@@ -46,7 +46,7 @@ class HomeController extends Controller
                 }
             }
         }
-
+ 
         $rate = Booking::where('user_id', $uid)
             ->where('status', 'completed')
             ->whereNotNull('contractor_id')
@@ -57,9 +57,9 @@ class HomeController extends Controller
         if ($rate) {
             $actions[] = $this->action('rate', $rate, 'How was your ' . $rate->service_name . '?', 'Tap to rate it. It takes a few seconds.');
         }
-
-        $next = $open->first(fn (Booking $b) => in_array($b->status, ['confirmed', 'assigned', 'in_progress'], true));
-
+ 
+        $next = $open->first(fn (Booking $b) => in_array($b->status, ['confirmed', 'assigned', 'en_route', 'in_progress'], true));
+ 
         $again = Booking::with('service')
             ->where('user_id', $uid)
             ->where('status', 'completed')
@@ -76,7 +76,7 @@ class HomeController extends Controller
                 'image_url' => $b->service->imageUrl(),
             ])
             ->values();
-
+ 
         return response()->json(['data' => [
             'actions' => array_slice($actions, 0, 3),
             'next_job' => $next?->toArrayFlat(),
@@ -84,7 +84,7 @@ class HomeController extends Controller
             'has_bookings' => Booking::where('user_id', $uid)->exists(),
         ]]);
     }
-
+ 
     private function action(string $type, Booking $b, string $title, string $subtitle): array
     {
         return ['type' => $type, 'booking_id' => $b->id, 'title' => $title, 'subtitle' => $subtitle];
