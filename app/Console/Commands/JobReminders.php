@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\User\Console;
+namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Modules\User\Models\AppNotification;
