@@ -83,6 +83,9 @@ class Notifier
 
                 return ['type' => 'booking_rescheduled', 'title' => 'Booking rescheduled', 'body' => "Your {$svc} booking was moved to {$when}."];
 
+            case 'problem_resolved':
+                return ['type' => 'problem_resolved', 'title' => 'Your problem was looked at', 'body' => "We marked the problem you reported on booking {$b->reference} as resolved. If it is not, message us from the booking.", 'email' => false];
+
             case 'refund':
                 return ['type' => 'refund_issued', 'title' => 'Refund issued', 'body' => "A refund for booking {$b->reference} has been sent to your original payment method. It usually arrives in 5 to 10 business days."];
 
@@ -100,7 +103,7 @@ class Notifier
                 return match ($e->to_status) {
                     'en_route' => ['type' => 'contractor_on_way', 'title' => 'Your contractor is on the way', 'body' => (($b->contractor?->name) ?: 'Your contractor') . " is on the way for your {$svc}."],
                     'in_progress' => ['type' => 'job_started', 'title' => 'Your job has started', 'body' => "The team has started your {$svc}.", 'email' => false],
-                    'completed' => ['type' => 'job_completed', 'title' => 'Job completed', 'body' => "Your {$svc} is finished. Thank you for choosing Synsyma. If anything is not right, message us from the booking."],
+                    'completed' => $byCustomer ? null : ['type' => 'job_completed', 'title' => 'Job completed', 'body' => "Your {$svc} is finished. Thank you for choosing Synsyma. If anything is not right, message us from the booking."],
                     'cancelled' => $byCustomer ? null : [
                         'type' => 'booking_cancelled',
                         'title' => 'Booking cancelled',

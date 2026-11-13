@@ -25,9 +25,16 @@ class AdminNotifier
         'booking_to_assign' => ['label' => 'New booking to assign', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
         'quote_requested' => ['label' => 'Quote requested', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
         'low_review' => ['label' => 'Low rating', 'permission' => 'reviews.view', 'push' => true, 'email' => false],
-        'payment_failed' => ['label' => 'Payment problem', 'permission' => 'bookings.manage', 'push' => false, 'email' => false],
+        'booking_created' => ['label' => 'New booking', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
+        'booking_cancelled' => ['label' => 'Customer cancelled', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
+        'booking_rescheduled' => ['label' => 'Customer rescheduled', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
+        'extra_hours_added' => ['label' => 'Extra hours added', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
+        'quote_accepted' => ['label' => 'Quote accepted', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
+        'quote_declined' => ['label' => 'Quote declined', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
+        'review_posted' => ['label' => 'New review', 'permission' => 'reviews.view', 'push' => true, 'email' => false],
+        'payment_failed' => ['label' => 'Payment problem', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
         'problem_reported' => ['label' => 'Customer reported a problem', 'permission' => 'bookings.manage', 'push' => true, 'email' => true],
-        'customer_completed' => ['label' => 'Customer completed a job', 'permission' => 'bookings.manage', 'push' => false, 'email' => false],
+        'customer_completed' => ['label' => 'Customer completed a job', 'permission' => 'bookings.manage', 'push' => true, 'email' => false],
         'deletion_request' => ['label' => 'Account deleted', 'permission' => 'deletions.view', 'push' => true, 'email' => false],
     ];
 
@@ -49,7 +56,34 @@ class AdminNotifier
                         self::notify('quote_requested', 'Quote requested', "{$who} asked for a price on {$svc}. Booking {$b->reference}.", $link, $b->id, 360);
                     } elseif ($event->to_status === 'confirmed' && ! $b->contractor_id) {
                         self::toAssign($b, $who, $svc, $link);
+                    } else {
+                        $when = $b->starts_at->copy()->setTimezone($b->timezone)->format('D j M, g:ia');
+                        self::notify('booking_created', 'New booking', "{$who} booked {$svc} for {$when}. Waiting for payment. Booking {$b->reference}.", $link, $b->id, 5);
                     }
+                    break;
+
+                case 'cancelled': // the customer cancelled (the admin's own cancels are logged as "status")
+                    $extra = $b->contractor_id ? ' A contractor is assigned, so let them know.' : '';
+                    self::notify('booking_cancelled', 'Customer cancelled', "{$who} cancelled {$svc} ({$b->reference}).{$extra}", $link, $b->id);
+                    break;
+
+                case 'rescheduled':
+                    if ($event->actor === 'customer') {
+                        $extra = $b->contractor_id ? ' A contractor is assigned, so let them know.' : '';
+                        self::notify('booking_rescheduled', 'Customer rescheduled', "{$who} moved {$svc} ({$b->reference}). " . trim((string) $event->note) . $extra, $link, $b->id);
+                    }
+                    break;
+
+                case 'extra_hours':
+                    self::notify('extra_hours_added', 'Extra hours added', "{$who} added more time to {$svc} ({$b->reference}). " . trim((string) $event->note), $link, $b->id);
+                    break;
+
+                case 'quote_accepted':
+                    self::notify('quote_accepted', 'Quote accepted', "{$who} accepted the quote for {$svc} ({$b->reference}). They can pay now.", $link, $b->id);
+                    break;
+
+                case 'quote_declined':
+                    self::notify('quote_declined', 'Quote declined', "{$who} closed the quote for {$svc} ({$b->reference}). " . trim((string) $event->note), $link, $b->id);
                     break;
 
                 case 'payment_succeeded':
@@ -66,6 +100,10 @@ class AdminNotifier
                         $comment = trim((string) $b->review->comment);
                         $snippet = $comment !== '' ? ' "' . Str::limit($comment, 120) . '"' : '';
                         self::notify('low_review', "{$rating}-star review", "{$who} rated {$svc} {$rating} out of 5.{$snippet}", $link, $b->id, 1440);
+                    } elseif ($rating !== null) {
+                        $comment = trim((string) $b->review->comment);
+                        $snippet = $comment !== '' ? ' "' . Str::limit($comment, 120) . '"' : '';
+                        self::notify('review_posted', "{$rating}-star review", "{$who} rated {$svc} {$rating} out of 5.{$snippet}", $link, $b->id, 1440);
                     }
                     break;
 
