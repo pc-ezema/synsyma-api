@@ -13,7 +13,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Admin: a contractor's ID, insurance and licence files. Kept on the private disk and only
- * served through this controller, so nobody can open them by guessing a URL.
+ * served through this controller, so nobody can open them by guessing a URL. Opening an ID
+ * file needs contractors.verify.
  */
 class ContractorDocumentController extends Controller
 {
@@ -38,9 +39,13 @@ class ContractorDocumentController extends Controller
         return response()->json(['message' => 'Document added.', 'data' => $doc->toArrayFlat()], 201);
     }
 
-    public function download(string $contractorId, string $id): StreamedResponse
+    public function download(Request $request, string $contractorId, string $id): StreamedResponse
     {
         $doc = ContractorDocument::where('contractor_id', $contractorId)->findOrFail($id);
+
+        if ($doc->kind === 'id') {
+            abort_unless($request->user()?->can('contractors.verify'), 403, 'You do not have permission to view ID documents.');
+        }
         abort_unless(Storage::disk('local')->exists($doc->path), 404);
 
         return Storage::disk('local')->response($doc->path, $doc->original_name, [

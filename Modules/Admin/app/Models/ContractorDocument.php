@@ -50,4 +50,9 @@ class ContractorDocument extends Model
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
+
+    public function contractor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Contractor::class, 'contractor_id');
+    }
 }

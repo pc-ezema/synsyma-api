@@ -76,6 +76,7 @@ class SyncPermissionsTableSeeder extends Seeder
         'contractors.documents.delete' => 'Remove a document for a contractor',
         'campaigns.view'            => 'See the QR codes for contractor sign-up',
         'campaigns.manage'          => 'Create, switch off or remove QR codes',
+        'contractors.verify'         => 'View ID documents and record background checks',
 
         // Bookings
         'bookings.view'             => 'See the bookings and their details',

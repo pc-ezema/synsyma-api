@@ -12,14 +12,17 @@ use Illuminate\Validation\ValidationException;
 use Modules\Admin\Models\Contractor;
 use Modules\Admin\Support\ContractorNotifier;
 use Modules\Admin\Support\ContractorRules;
+use Modules\Admin\Support\ContractorVerificationRules;
 
 /**
  * Admin: contractors (companies and individuals).
- * Guarded with can:contractors.view / create / update / delete.
+ * Guarded with permission:contractors.view / create / update / delete. Background-check results
+ * need contractors.verify (own route).
  */
 class ContractorController extends Controller
 {
     use ContractorRules;
+    use ContractorVerificationRules;
 
     public function index(Request $request): JsonResponse
     {
@@ -81,7 +84,10 @@ class ContractorController extends Controller
         return response()->json(['data' => $this->load($id)->toArrayFlat(true)]);
     }
 
-    /** An admin adds a contractor directly. They are approved straight away. */
+    /**
+     * An admin adds a contractor directly. They start as pending, the same as an applicant, and are
+     * approved once the ID, both agreements and the background check are on record.
+     */
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate($this->contractorRules());
@@ -92,21 +98,24 @@ class ContractorController extends Controller
             'commission_percent' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
             'admin_notes' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ]);
+        $ver = $request->validate($this->verificationRules());
 
-        $contractor = DB::transaction(function () use ($data, $extra) {
+        $contractor = DB::transaction(function () use ($request, $data, $extra, $ver) {
             $contractor = Contractor::create(collect($data)->except(['category_ids', 'areas'])->all() + $extra + [
-                'status' => 'approved',
-                'approved_at' => now(),
+                'id_type' => $ver['id_type'] ?? null,
+                'social_links' => $this->cleanSocialLinks($ver['social_links'] ?? null),
+                'status' => 'pending',
                 'source' => 'admin',
-            ]);
+            ] + $this->consentAttributes($request, null, 'admin'));
             $this->syncContractorLinks($contractor, $data);
 
             return $contractor;
         });
 
-        ContractorNotifier::send($contractor, 'added');
-
-        return response()->json(['message' => 'Contractor added.', 'data' => $this->load($contractor->id)->toArrayFlat(true)], 201);
+        return response()->json([
+            'message' => 'Contractor added. Upload their ID and finish the verification, then approve them.',
+            'data' => $this->load($contractor->id)->toArrayFlat(true),
+        ], 201);
     }
 
     public function update(Request $request, string $id): JsonResponse
@@ -128,10 +137,60 @@ class ContractorController extends Controller
         return response()->json(['message' => 'Contractor updated.', 'data' => $this->load($contractor->id)->toArrayFlat(true)]);
     }
 
-    /** Approve, reject or suspend. A reason is needed to reject or suspend. */
-    public function updateStatus(Request $request, string $id): JsonResponse
+    /**
+     * ID type, social links and the two agreements (recorded on the contractor's behalf).
+     * The background-check result has its own route, guarded by contractors.verify.
+     */
+    public function updateVerification(Request $request, string $id): JsonResponse
     {
         $contractor = Contractor::findOrFail($id);
+
+        $data = $request->validate($this->verificationRules());
+
+        $attrs = $this->consentAttributes($request, $contractor, 'admin');
+
+        if (array_key_exists('id_type', $data)) {
+            $attrs['id_type'] = $data['id_type'];
+        }
+        if (array_key_exists('social_links', $data)) {
+            $attrs['social_links'] = $this->cleanSocialLinks($data['social_links']);
+        }
+
+        $contractor->update($attrs);
+
+        return response()->json(['message' => 'Verification updated.', 'data' => $this->load($contractor->id)->toArrayFlat(true)]);
+    }
+
+    /** The background-check result and private notes. Guarded by contractors.verify on the route. */
+    public function updateBackgroundCheck(Request $request, string $id): JsonResponse
+    {
+        $contractor = Contractor::findOrFail($id);
+
+        $data = $request->validate([
+            'background_status' => ['required', Rule::in(Contractor::BACKGROUND_STATUSES)],
+            'background_notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($data['background_status'] !== 'not_started' && ! $contractor->background_consent_at) {
+            throw ValidationException::withMessages(['background_status' => 'Record their consent to a background check first.']);
+        }
+
+        $attrs = [
+            'background_status' => $data['background_status'],
+            'background_checked_at' => in_array($data['background_status'], ['passed', 'failed'], true) ? now() : null,
+        ];
+        if (array_key_exists('background_notes', $data)) {
+            $attrs['background_notes'] = filled($data['background_notes']) ? trim($data['background_notes']) : null;
+        }
+        $contractor->update($attrs);
+
+        return response()->json(['message' => 'Background check saved.', 'data' => $this->load($contractor->id)->toArrayFlat(true)]);
+    }
+
+    /** Approve, reject or suspend. A reason is needed to reject or suspend. Approval needs the verification complete. */
+    public function updateStatus(Request $request, string $id): JsonResponse
+    {
+        $contractor = $this->load($id);
 
         $data = $request->validate([
             'status' => ['required', Rule::in(Contractor::STATUSES)],
@@ -142,8 +201,15 @@ class ContractorController extends Controller
             throw ValidationException::withMessages(['reason' => 'Give a short reason.']);
         }
 
+        if ($data['status'] === 'approved') {
+            $v = $contractor->verification();
+            if (! $v['ready']) {
+                throw ValidationException::withMessages(['status' => "Can't approve yet. Still needed: " . implode(', ', $v['missing']) . '.']);
+            }
+        }
+
+        $previous = $contractor->status; // read before it changes, so the right notification goes out
         $contractor->status = $data['status'];
-        $previous = $contractor->status;
         $reason = trim((string) ($data['reason'] ?? ''));
         $contractor->status_reason = $data['status'] === 'approved' || $reason === '' ? null : $reason;
         if ($data['status'] === 'approved') {

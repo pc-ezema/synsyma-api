@@ -24,6 +24,12 @@ class Contractor extends Model
     public const TYPES = ['company', 'individual'];
     public const STATUSES = ['pending', 'approved', 'suspended', 'rejected'];
     public const COUNTRIES = ['CA' => 'Canada', 'US' => 'United States', 'GB' => 'United Kingdom'];
+    public const ID_TYPES = ['passport', 'drivers_licence', 'national_id'];
+    public const BACKGROUND_STATUSES = ['not_started', 'in_progress', 'passed', 'failed'];
+    public const SOCIAL_KEYS = ['instagram', 'facebook', 'linkedin', 'x', 'website'];
+
+    /** Bump this when the wording of the tax / background-check agreement changes. */
+    public const CONSENT_VERSION = '2026-11';
 
     /**
      * The attributes that are mass assignable.
@@ -32,7 +38,14 @@ class Contractor extends Model
      */
     protected $guarded = [];
 
-    protected $casts = ['commission_percent' => 'decimal:2', 'approved_at' => 'datetime'];
+    protected $casts = [
+        'commission_percent' => 'decimal:2',
+        'approved_at' => 'datetime',
+        'social_links' => 'array',
+        'tax_ack_at' => 'datetime',
+        'background_consent_at' => 'datetime',
+        'background_checked_at' => 'datetime',
+    ];
 
     // Automatically generate when creating a new record
     public static function boot()
@@ -64,6 +77,32 @@ class Contractor extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(ContractorDocument::class, 'contractor_id');
+    }
+
+    /**
+     * What is still missing before this contractor can be approved.
+     * A contractor is ready when: an ID file is on record, both agreements are given
+     * and the background check has passed.
+     */
+    public function verification(): array
+    {
+        $docs = $this->relationLoaded('documents') ? $this->documents : $this->documents()->get(['kind', 'verified']);
+
+        $checks = [
+            'id' => $docs->contains('kind', 'id'),
+            'tax_ack' => $this->tax_ack_at !== null,
+            'background_consent' => $this->background_consent_at !== null,
+            'background_check' => $this->background_status === 'passed',
+        ];
+        $labels = [
+            'id' => 'a government-approved photo ID',
+            'tax_ack' => 'the tax responsibility agreement',
+            'background_consent' => 'consent to a background check',
+            'background_check' => 'a passed background check',
+        ];
+        $missing = collect($checks)->reject()->keys()->map(fn ($k) => $labels[$k])->values()->all();
+
+        return ['ready' => $missing === [], 'missing' => $missing, 'checks' => $checks];
     }
 
     /** List rows are light. Pass $full for the detail view. */
@@ -102,6 +141,17 @@ class Contractor extends Model
             'categories' => $this->categories->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->values(),
             'areas' => $this->areas->map(fn ($a) => ['id' => $a->id, 'country' => $a->country, 'region' => $a->region, 'city' => $a->city])->values(),
             'documents' => $this->documents->map->toArrayFlat()->values(),
+
+            'id_type' => $this->id_type,
+            'social_links' => $this->social_links ?: new \stdClass(),
+            'tax_ack_at' => $this->tax_ack_at?->toIso8601String(),
+            'background_consent_at' => $this->background_consent_at?->toIso8601String(),
+            'consent_source' => $this->consent_source,
+            'consent_version' => $this->consent_version,
+            'background_status' => $this->background_status ?? 'not_started',
+            'background_checked_at' => $this->background_checked_at?->toIso8601String(),
+            'background_notes' => $this->background_notes,
+            'verification' => $this->verification(),
         ];
     }
 }

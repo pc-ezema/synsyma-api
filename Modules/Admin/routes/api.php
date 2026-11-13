@@ -22,7 +22,9 @@ use Modules\Admin\Http\Controllers\AuthController;
 use Modules\Admin\Http\Controllers\ContractorCampaignController;
 use Modules\Admin\Http\Controllers\ContractorController;
 use Modules\Admin\Http\Controllers\ContractorDocumentController;
+use Modules\Admin\Http\Controllers\DashboardController;
 use Modules\Admin\Http\Controllers\PublicJoinController;
+use Modules\Admin\Http\Controllers\PublicStatsController;
 use Modules\Admin\Http\Controllers\ServiceCategoryController;
 use Modules\Admin\Http\Controllers\ServiceController;
 use Modules\Admin\Http\Controllers\SupportContactController;
@@ -36,6 +38,7 @@ Route::prefix('v1/admin')->group(function () {
     Route::middleware(['auth:sanctum', EnsureAdmin::class])->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::get('dashboard', DashboardController::class);
 
         Route::prefix('chat')->group(function () {
             Route::get('unread-count', [AdminChatController::class, 'unreadCount'])->middleware('permission:chat.view');
@@ -152,6 +155,8 @@ Route::prefix('v1/admin')->group(function () {
             Route::get('{id}', [ContractorController::class, 'show'])->middleware('permission:contractors.view');
             Route::patch('{id}', [ContractorController::class, 'update'])->middleware('permission:contractors.update');
             Route::patch('{id}/status', [ContractorController::class, 'updateStatus'])->middleware('permission:contractors.update');
+            Route::patch('{id}/verification', [ContractorController::class, 'updateVerification'])->middleware('permission:contractors.update');
+            Route::patch('{id}/background-check', [ContractorController::class, 'updateBackgroundCheck'])->middleware('permission:contractors.verify');
             Route::delete('{id}', [ContractorController::class, 'destroy'])->middleware('permission:contractors.delete');
 
             Route::post('{contractorId}/documents', [ContractorDocumentController::class, 'store'])->middleware('permission:contractors.update');
@@ -234,6 +239,8 @@ Route::prefix('v1/admin')->group(function () {
         Route::get('settings', [AdminSettingController::class, 'show'])->middleware('permission:settings.view');
         Route::put('settings', [AdminSettingController::class, 'update'])->middleware('permission:settings.manage');
     });
+
+    Route::get('public/login-stats', [PublicStatsController::class, 'loginStats'])->middleware('throttle:30,1');
 
     Route::prefix('public/join')->group(function () {
         Route::get('options', [PublicJoinController::class, 'options'])->middleware('throttle:60,1');

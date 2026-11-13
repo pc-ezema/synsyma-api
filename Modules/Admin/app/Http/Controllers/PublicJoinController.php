@@ -14,6 +14,7 @@ use Modules\Admin\Models\ContractorDocument;
 use Modules\Admin\Models\ServiceCategory;
 use Modules\Admin\Support\ContractorNotifier;
 use Modules\Admin\Support\ContractorRules;
+use Modules\Admin\Support\ContractorVerificationRules;
 
 /**
  * Public (no login): the page a QR code or advert opens, where a company or an individual applies.
@@ -22,6 +23,7 @@ use Modules\Admin\Support\ContractorRules;
 class PublicJoinController extends Controller
 {
     use ContractorRules;
+    use ContractorVerificationRules;
 
     /** Categories and countries for the form. Also counts a scan when a QR code is used. */
     public function options(Request $request): JsonResponse
@@ -50,14 +52,23 @@ class PublicJoinController extends Controller
             return response()->json(['message' => 'Thanks. We will be in touch.', 'data' => []], 201);
         }
 
+        // "+" keeps the left-hand rule when a key appears twice, so the required versions below win
+        // over the optional ones in verificationRules().
         $data = $request->validate($this->contractorRules() + [
             'ref' => ['sometimes', 'nullable', 'string', 'max:24', 'alpha_dash'],
             'agreed' => ['accepted'],
-            'documents' => ['sometimes', 'array', 'max:4'],
+            'documents' => ['required', 'array', 'max:4'],
             'documents.*.kind' => ['required', Rule::in(ContractorDocument::KINDS)],
             'documents.*.file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-        ], [
+            'id_type' => ['required', Rule::in(Contractor::ID_TYPES)],
+            'background_consent' => ['accepted'],
+            'tax_ack' => ['accepted'],
+        ] + $this->verificationRules(), [
             'agreed.accepted' => 'Please confirm the details are correct.',
+            'background_consent.accepted' => 'You need to agree to a background check.',
+            'tax_ack.accepted' => 'Please confirm you are responsible for your own taxes.',
+            'id_type.required' => 'Choose the type of ID.',
+            'documents.required' => 'Upload a government-approved photo ID.',
             'documents.*.file.max' => 'Each file must be 5 MB or smaller.',
             'documents.*.file.mimes' => 'Use JPG, PNG or PDF files.',
             'email.unique' => 'An application with this email already exists.',
@@ -68,21 +79,24 @@ class PublicJoinController extends Controller
         if (! $this->postalCodeIsValid($data['country'], $data['postal_code'])) {
             throw ValidationException::withMessages(['postal_code' => 'Enter a valid postal or ZIP code for the country.']);
         }
-        if ($data['type'] === 'individual' && ! collect($request->input('documents', []))->contains(fn ($d) => ($d['kind'] ?? null) === 'id')) {
-            throw ValidationException::withMessages(['documents' => 'Individuals must upload a photo ID.']);
+        // A government-approved ID is needed from everyone (the owner's, for a company).
+        if (! collect($request->input('documents', []))->contains(fn ($d) => ($d['kind'] ?? null) === 'id')) {
+            throw ValidationException::withMessages(['documents' => 'Upload a government-approved photo ID.']);
         }
 
         $campaign = ! empty($data['ref'])
             ? ContractorCampaign::where('code', $data['ref'])->where('is_active', true)->first()
             : null;
 
-        // CHANGE 1: keep the result of the transaction
         $contractor = DB::transaction(function () use ($request, $data, $campaign) {
-            $contractor = Contractor::create(collect($data)->except(['category_ids', 'areas', 'ref', 'agreed', 'documents'])->all() + [
-                'status' => 'pending',
-                'source' => 'self',
-                'campaign_id' => $campaign?->id,
-            ]);
+            $contractor = Contractor::create(
+                collect($data)->except(['category_ids', 'areas', 'ref', 'agreed', 'documents', 'social_links', 'tax_ack', 'background_consent'])->all() + [
+                    'status' => 'pending',
+                    'source' => 'self',
+                    'campaign_id' => $campaign?->id,
+                    'social_links' => $this->cleanSocialLinks($data['social_links'] ?? null),
+                ] + $this->consentAttributes($request, null, 'self')
+            );
             $this->syncContractorLinks($contractor, $data);
 
             foreach ((array) $request->file('documents', []) as $i => $row) {
@@ -99,10 +113,10 @@ class PublicJoinController extends Controller
                 ]);
             }
 
-            return $contractor; // CHANGE 2: hand it back
+            return $contractor;
         });
 
-        // CHANGE 3: send the emails after everything is saved
+        // Emails go out after everything is saved.
         ContractorNotifier::send($contractor, 'applied');   // confirmation to the applicant
         ContractorNotifier::notifyTeam($contractor);        // alert to your team
 

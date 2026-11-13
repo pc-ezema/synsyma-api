@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Replaces your existing contractors migration (same file, same name).
+ * Only the "verification" block inside `contractors` is new; the other tables are unchanged.
+ */
 return new class extends Migration
 {
     public function up(): void
@@ -26,6 +30,20 @@ return new class extends Migration
             $t->string('status_reason', 300)->nullable();
             $t->decimal('commission_percent', 5, 2)->nullable(); // null = use the platform default
             $t->text('admin_notes')->nullable();
+
+            // ---- verification ----
+            $t->string('id_type', 20)->nullable();        // passport | drivers_licence | national_id (the file is a contractor_document of kind "id")
+            $t->json('social_links')->nullable();         // {instagram, facebook, linkedin, x, website}. Admin only.
+            $t->timestamp('tax_ack_at')->nullable();      // agreed they are responsible for their own taxes
+            $t->timestamp('background_consent_at')->nullable(); // agreed to a background check
+            $t->string('consent_version', 20)->nullable();      // which wording they agreed to
+            $t->string('consent_source', 8)->nullable();        // self | admin (recorded on their behalf)
+            $t->string('consent_recorded_by', 36)->nullable();  // admin id when consent_source = admin
+            $t->string('consent_ip', 45)->nullable();
+            $t->string('background_status', 12)->default('not_started'); // not_started | in_progress | passed | failed
+            $t->timestamp('background_checked_at')->nullable();
+            $t->text('background_notes')->nullable();
+
             $t->foreignUuid('campaign_id')->nullable()->constrained('contractor_campaigns')->nullOnDelete();
             $t->string('source', 12)->default('self');    // self (applied) | admin (added by an admin)
             $t->timestamp('approved_at')->nullable();
