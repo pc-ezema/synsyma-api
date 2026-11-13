@@ -74,6 +74,10 @@ class Notifier
             case 'assigned':
                 $who = trim((string) $e->note) ?: 'A contractor';
 
+                if (in_array($e->from_status, ['assigned', 'en_route'], true)) { // a different contractor replaced the first one
+                    return ['type' => 'contractor_changed', 'title' => 'Your contractor has changed', 'body' => "{$who} will now do your {$svc} on {$when}."];
+                }
+
                 return ['type' => 'contractor_assigned', 'title' => 'Contractor assigned', 'body' => "{$who} will do your {$svc} on {$when}."];
 
             case 'rescheduled':
@@ -83,8 +87,23 @@ class Notifier
 
                 return ['type' => 'booking_rescheduled', 'title' => 'Booking rescheduled', 'body' => "Your {$svc} booking was moved to {$when}."];
 
+            case 'problem_reported':
+                return ['type' => 'problem_received', 'title' => 'We received your report', 'body' => "Thank you for telling us. Our team will look into booking {$b->reference} and contact you shortly.", 'email' => false];
+
             case 'problem_resolved':
                 return ['type' => 'problem_resolved', 'title' => 'Your problem was looked at', 'body' => "We marked the problem you reported on booking {$b->reference} as resolved. If it is not, message us from the booking.", 'email' => false];
+
+            case 'extra_hours':
+                return ['type' => 'extra_hours_added', 'title' => 'Extra hours added', 'body' => "We added the extra time to your {$svc}. " . trim((string) $e->note), 'email' => false];
+
+            case 'payment_failed':
+                return ['type' => 'payment_failed', 'title' => 'Your payment did not go through', 'body' => "The payment for your {$svc} booking {$b->reference} was not completed. Open the booking to try again.", 'email' => false];
+
+            case 'payment_late':
+                return ['type' => 'payment_refunding', 'title' => 'We are refunding a late payment', 'body' => "A payment for booking {$b->reference} arrived after it could be used, so we are sending it back to you."];
+
+            case 'quote_withdrawn':
+                return ['type' => 'quote_withdrawn', 'title' => 'Your quote was withdrawn', 'body' => "The quote for {$svc} was withdrawn by our team. We will send you a new one if needed. Message us from the booking with any questions.", 'email' => false];
 
             case 'refund':
                 return ['type' => 'refund_issued', 'title' => 'Refund issued', 'body' => "A refund for booking {$b->reference} has been sent to your original payment method. It usually arrives in 5 to 10 business days."];
@@ -101,6 +120,10 @@ class Notifier
 
             case 'status':
                 return match ($e->to_status) {
+                    // "Remove contractor" sends the booking back to confirmed. Only tell the customer when a contractor had been assigned.
+                    'confirmed' => in_array($e->from_status, ['assigned', 'en_route'], true)
+                        ? ['type' => 'contractor_removed', 'title' => 'We are finding you a new contractor', 'body' => "The contractor for your {$svc} on {$when} is no longer assigned. We are finding a new one and will let you know as soon as they are confirmed."]
+                        : null,
                     'en_route' => ['type' => 'contractor_on_way', 'title' => 'Your contractor is on the way', 'body' => (($b->contractor?->name) ?: 'Your contractor') . " is on the way for your {$svc}."],
                     'in_progress' => ['type' => 'job_started', 'title' => 'Your job has started', 'body' => "The team has started your {$svc}.", 'email' => false],
                     'completed' => $byCustomer ? null : ['type' => 'job_completed', 'title' => 'Job completed', 'body' => "Your {$svc} is finished. Thank you for choosing Synsyma. If anything is not right, message us from the booking."],
