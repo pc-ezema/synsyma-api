@@ -16,12 +16,15 @@ use Throwable;
 
 class PushService
 {
-    /** Mobile app users. @param array<string, scalar> $data values are sent as strings */
-    public function sendToUser(string $userId, string $title, string $body, array $data = [], ?string $tag = null): void
+    /**
+     * Mobile app users. @param array<string, scalar> $data values are sent as strings
+     * $badge is the number for the app icon. Leave it null (chat does) and the icon number is left as it is.
+     */
+    public function sendToUser(string $userId, string $title, string $body, array $data = [], ?string $tag = null, ?int $badge = null): void
     {
         $this->deliver(
             DeviceToken::where('user_id', $userId)->pluck('token'),
-            DeviceToken::class, $title, $body, $data, $tag,
+            DeviceToken::class, $title, $body, $data, $tag, null, $badge,
         );
     }
 
@@ -38,7 +41,7 @@ class PushService
         );
     }
 
-    private function deliver(Collection $tokens, string $tokenModel, string $title, string $body, array $data, ?string $tag, ?string $link = null): void
+    private function deliver(Collection $tokens, string $tokenModel, string $title, string $body, array $data, ?string $tag, ?string $link = null, ?int $badge = null): void
     {
         $tokens = $tokens->unique()->values();
 
@@ -58,7 +61,14 @@ class PushService
             'sound' => 'default',
         ]];
         $web = ['headers' => ['Urgency' => 'high']];
+        $aps = ['sound' => 'default'];
 
+        if ($badge !== null) {
+            $aps['badge'] = max(0, $badge); // the red number on the iPhone app icon
+            if ($badge > 0) {
+                $android['notification']['notification_count'] = $badge; // the count some Android launchers show
+            }
+        }
         if ($tag) {
             $android['notification']['tag'] = $tag; // a newer message replaces the older one
             $web['notification'] = ['tag' => $tag];
@@ -71,7 +81,7 @@ class PushService
             ->withNotification(Notification::create($title, $body))
             ->withData(array_map('strval', $data))
             ->withAndroidConfig(AndroidConfig::fromArray($android))
-            ->withApnsConfig(ApnsConfig::fromArray(['payload' => ['aps' => ['sound' => 'default']]]))
+            ->withApnsConfig(ApnsConfig::fromArray(['payload' => ['aps' => $aps]]))
             ->withWebPushConfig(WebPushConfig::fromArray($web));
 
         foreach ($tokens as $token) {

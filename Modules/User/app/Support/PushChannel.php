@@ -3,54 +3,23 @@
 namespace Modules\User\Support;
 
 use Illuminate\Support\Facades\Log;
-use Modules\Chat\Models\DeviceToken;
+use Modules\Push\Services\PushService;
 
 /**
- * Sends one push to every phone a customer is signed in on.
- * Uses kreait/laravel-firebase when it is installed. If your chat pushes already go through another class,
- * swap the body of deliver() for a call to it. Nothing here may ever break the action that caused it.
+ * Sends one push to every phone a customer is signed in on, through the same PushService (and the same Firebase
+ * credentials and device tokens) that chat already uses. It also sets the number on the app icon.
+ * Nothing here may ever break the action that caused it.
  */
 class PushChannel
 {
-    /** @param array<string,string> $data  must be strings (FCM rule) */
+    /** @param array<string,scalar> $data  sent as strings (FCM rule) */
     public static function send(string $userId, string $title, string $body, array $data = []): void
     {
         try {
-            $tokens = DeviceToken::where('user_id', $userId)->pluck('token')->filter()->values()->all();
-            if (! $tokens) {
-                return;
-            }
-            $data['badge'] = UnreadCount::for($userId); // counted after the new notification was saved, so it includes it
-            self::deliver($tokens, $title, $body, array_map('strval', $data));
+            $badge = UnreadCount::for($userId); // counted after the new notification was saved, so it includes it
+            app(PushService::class)->sendToUser($userId, $title, $body, array_map('strval', $data + ['badge' => $badge]), null, $badge);
         } catch (\Throwable $e) {
             Log::warning('Push failed', ['user' => $userId, 'error' => $e->getMessage()]);
-        }
-    }
-
-    private static function deliver(array $tokens, string $title, string $body, array $data): void
-    {
-        if (! class_exists(\Kreait\Firebase\Contract\Messaging::class)) {
-            Log::info('Push not sent: kreait/laravel-firebase is not installed. Wire PushChannel::deliver to your chat push code.', ['title' => $title]);
-
-            return;
-        }
-
-        $messaging = app(\Kreait\Firebase\Contract\Messaging::class);
-        // The red number on the app icon. iOS reads it from the push; Android shows it as the notification count.
-        $badge = isset($data['badge']) ? (int) $data['badge'] : 0;
-
-        $message = \Kreait\Firebase\Messaging\CloudMessage::new()
-            ->withNotification(\Kreait\Firebase\Messaging\Notification::create($title, $body))
-            ->withApnsConfig(\Kreait\Firebase\Messaging\ApnsConfig::fromArray(['payload' => ['aps' => ['badge' => $badge, 'sound' => 'default']]]))
-            ->withAndroidConfig(\Kreait\Firebase\Messaging\AndroidConfig::fromArray(['notification' => ['notification_count' => max(1, $badge)]]))
-            ->withData($data);
-
-        $report = $messaging->sendMulticast($message, $tokens);
-
-        // Forget phones that no longer exist, so we stop sending to them.
-        $dead = array_merge($report->invalidTokens(), $report->unknownTokens());
-        if ($dead) {
-            DeviceToken::whereIn('token', $dead)->delete();
         }
     }
 }
