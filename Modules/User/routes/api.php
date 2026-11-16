@@ -72,6 +72,7 @@ Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->grou
     Route::get('bookings/rules', [BookingRulesController::class, 'show']);
 });
 Route::get('v1/public/support-contacts', [UserController::class, 'contacts'])->middleware('throttle:60,1');
+Route::post('v1/webhooks/stripe', [StripeWebhookController::class, 'handle']);
 Route::post('v1/webhooks/paypal', [PayPalController::class, 'webhook']);
 Route::get('v1/paypal/return', [PayPalController::class, 'approved'])->name('paypal.return');
 Route::get('v1/paypal/cancel', [PayPalController::class, 'cancelled'])->name('paypal.cancel');
