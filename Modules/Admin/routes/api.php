@@ -146,6 +146,9 @@ Route::prefix('v1/admin')->group(function () {
             Route::post('/', [ServiceController::class, 'store'])->middleware('permission:services.create');
             Route::patch('{id}', [ServiceController::class, 'update'])->middleware('permission:services.update');
             Route::delete('{id}', [ServiceController::class, 'destroy'])->middleware('permission:services.delete');
+
+            Route::post('/{id}/image', [ServiceController::class, 'uploadImage'])->middleware('permission:services.update');
+            Route::delete('/{id}/image', [ServiceController::class, 'removeImage'])->middleware('permission:services.update');
         });
 
         Route::prefix('contractors')->group(function () {
