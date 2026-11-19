@@ -76,6 +76,8 @@ class Payment extends Model
             'failure_message' => $this->failure_message,
             'paid_at' => $this->paid_at?->toIso8601String(),
             'stripe_payment_intent_id' => $this->stripe_payment_intent_id,
+            'hours' => $this->hours ?? null,        // extra hours this payment bought
+            'provider' => $this->provider ?? null,  // 'stripe' or 'paypal'
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
