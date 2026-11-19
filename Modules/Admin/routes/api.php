@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AccessControlController;
 use Modules\Admin\Http\Controllers\AccountDeletionController;
+use Modules\Admin\Http\Controllers\AddressSearchController;
 use Modules\Admin\Http\Controllers\AdminBookingController;
 use Modules\Admin\Http\Controllers\AdminBookingPolicyController;
 use Modules\Admin\Http\Controllers\AdminChatController;
@@ -23,6 +24,7 @@ use Modules\Admin\Http\Controllers\ContractorCampaignController;
 use Modules\Admin\Http\Controllers\ContractorController;
 use Modules\Admin\Http\Controllers\ContractorDocumentController;
 use Modules\Admin\Http\Controllers\DashboardController;
+use Modules\Admin\Http\Controllers\PublicAddressSearchController;
 use Modules\Admin\Http\Controllers\PublicJoinController;
 use Modules\Admin\Http\Controllers\PublicStatsController;
 use Modules\Admin\Http\Controllers\ServiceCategoryController;
@@ -241,6 +243,7 @@ Route::prefix('v1/admin')->group(function () {
 
         Route::get('settings', [AdminSettingController::class, 'show'])->middleware('permission:settings.view');
         Route::put('settings', [AdminSettingController::class, 'update'])->middleware('permission:settings.manage');
+        Route::get('address-search', AddressSearchController::class)->middleware('throttle:120,1');
     });
 
     Route::get('public/login-stats', [PublicStatsController::class, 'loginStats'])->middleware('throttle:30,1');
@@ -249,4 +252,5 @@ Route::prefix('v1/admin')->group(function () {
         Route::get('options', [PublicJoinController::class, 'options'])->middleware('throttle:60,1');
         Route::post('apply', [PublicJoinController::class, 'apply'])->middleware('throttle:6,1');
     });
+    Route::get('public/join/address-search', PublicAddressSearchController::class)->middleware('throttle:60,1');
 });

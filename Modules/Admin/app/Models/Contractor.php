@@ -88,14 +88,17 @@ class Contractor extends Model
     {
         $docs = $this->relationLoaded('documents') ? $this->documents : $this->documents()->get(['kind', 'verified']);
 
+        $needsCv = $this->type === 'individual'; // companies are not asked for a CV
         $checks = [
             'id' => $docs->contains('kind', 'id'),
+            'cv' => ! $needsCv || $docs->contains('kind', 'cv'),
             'tax_ack' => $this->tax_ack_at !== null,
             'background_consent' => $this->background_consent_at !== null,
             'background_check' => $this->background_status === 'passed',
         ];
         $labels = [
             'id' => 'a government-approved photo ID',
+            'cv' => 'a CV',
             'tax_ack' => 'the tax responsibility agreement',
             'background_consent' => 'consent to a background check',
             'background_check' => 'a passed background check',

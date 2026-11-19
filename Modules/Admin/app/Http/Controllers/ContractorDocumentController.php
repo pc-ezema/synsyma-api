@@ -12,9 +12,9 @@ use Modules\Admin\Models\ContractorDocument;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Admin: a contractor's ID, insurance and licence files. Kept on the private disk and only
+ * Admin: a contractor's ID, CV, insurance and licence files. Kept on the private disk and only
  * served through this controller, so nobody can open them by guessing a URL. Opening an ID
- * file needs contractors.verify.
+ * or CV file needs contractors.verify.
  */
 class ContractorDocumentController extends Controller
 {
@@ -24,8 +24,11 @@ class ContractorDocumentController extends Controller
 
         $request->validate([
             'kind' => ['required', Rule::in(ContractorDocument::KINDS)],
-            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-        ], ['file.max' => 'The file must be 5 MB or smaller.', 'file.mimes' => 'Use a JPG, PNG or PDF file.']);
+            'file' => ['required', 'file', 'mimes:' . ContractorDocument::mimesFor($request->input('kind')), 'max:5120'],
+        ], [
+            'file.max' => 'The file must be 5 MB or smaller.',
+            'file.mimes' => $request->input('kind') === 'cv' ? 'Use a PDF, DOC or DOCX file for the CV.' : 'Use a JPG, PNG or PDF file.',
+        ]);
 
         $file = $request->file('file');
         $doc = $contractor->documents()->create([
@@ -43,8 +46,8 @@ class ContractorDocumentController extends Controller
     {
         $doc = ContractorDocument::where('contractor_id', $contractorId)->findOrFail($id);
 
-        if ($doc->kind === 'id') {
-            abort_unless($request->user()?->can('contractors.verify'), 403, 'You do not have permission to view ID documents.');
+        if (in_array($doc->kind, ['id', 'cv'], true)) {
+            abort_unless($request->user()?->can('contractors.verify'), 403, 'You do not have permission to view ID and CV documents.');
         }
         abort_unless(Storage::disk('local')->exists($doc->path), 404);
 

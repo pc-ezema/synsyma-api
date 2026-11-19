@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\User\Models\Address;
 use Modules\Admin\Models\Contractor;
+use Modules\Admin\Support\AddressSearch;
 use Modules\Admin\Support\ContractorRules;
 
 /** The signed-in customer's saved addresses. */
@@ -111,4 +112,22 @@ class AddressController extends Controller
 
         return $data;
     }
+
+    /** Suggestions while the customer types an address. */
+    public function search(Request $request): JsonResponse
+    {
+        $request->validate([
+            'q' => ['required', 'string', 'min:3', 'max:120'],
+            'country' => ['nullable', Rule::in(AddressSearch::COUNTRIES)],
+        ]);
+ 
+        $rows = AddressSearch::search((string) $request->query('q'), $request->query('country'));
+ 
+        if ($rows === null) {
+            return response()->json(['message' => "Address search isn't available right now.", 'data' => []], 503);
+        }
+ 
+        return response()->json(['data' => $rows]);
+    }
+
 }

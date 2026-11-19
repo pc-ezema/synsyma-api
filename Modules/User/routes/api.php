@@ -70,6 +70,8 @@ Route::prefix('v1/users')->middleware(['auth:sanctum', EnsureUser::class])->grou
     Route::post('bookings/{id}/problem', [BookingCompletionController::class, 'reportProblem']);
 
     Route::get('bookings/rules', [BookingRulesController::class, 'show']);
+
+    Route::get('address-search', [AddressController::class, 'search'])->middleware('throttle:60,1');
 });
 Route::get('v1/public/support-contacts', [UserController::class, 'contacts'])->middleware('throttle:60,1');
 Route::post('v1/webhooks/stripe', [StripeWebhookController::class, 'handle']);

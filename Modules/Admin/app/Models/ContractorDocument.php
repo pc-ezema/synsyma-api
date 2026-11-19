@@ -14,7 +14,13 @@ class ContractorDocument extends Model
 
     protected $keyType = 'string';
 
-    public const KINDS = ['id', 'insurance', 'licence', 'other'];
+    public const KINDS = ['id', 'cv', 'insurance', 'licence', 'other'];
+
+    /** File types allowed for a kind: a CV is a PDF or Word file, everything else a scan or photo. */
+    public static function mimesFor(?string $kind): string
+    {
+        return $kind === 'cv' ? 'pdf,doc,docx' : 'jpg,jpeg,png,pdf';
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -24,7 +30,6 @@ class ContractorDocument extends Model
     protected $guarded = [];
 
     protected $casts = ['verified' => 'boolean', 'size' => 'integer'];
-
 
     // Automatically generate when creating a new record
     public static function boot()
@@ -37,7 +42,7 @@ class ContractorDocument extends Model
             }
         });
     }
-    
+
     public function toArrayFlat(): array
     {
         return [

@@ -57,9 +57,9 @@ class PublicJoinController extends Controller
         $data = $request->validate($this->contractorRules() + [
             'ref' => ['sometimes', 'nullable', 'string', 'max:24', 'alpha_dash'],
             'agreed' => ['accepted'],
-            'documents' => ['required', 'array', 'max:4'],
+            'documents' => ['required', 'array', 'max:5'],
             'documents.*.kind' => ['required', Rule::in(ContractorDocument::KINDS)],
-            'documents.*.file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'documents.*.file' => ['required', 'file', 'max:5120'],
             'id_type' => ['required', Rule::in(Contractor::ID_TYPES)],
             'background_consent' => ['accepted'],
             'tax_ack' => ['accepted'],
@@ -70,9 +70,17 @@ class PublicJoinController extends Controller
             'id_type.required' => 'Choose the type of ID.',
             'documents.required' => 'Upload a government-approved photo ID.',
             'documents.*.file.max' => 'Each file must be 5 MB or smaller.',
-            'documents.*.file.mimes' => 'Use JPG, PNG or PDF files.',
             'email.unique' => 'An application with this email already exists.',
         ]);
+
+        // Each file is checked by its kind: a CV is a PDF or Word file, the rest are scans or photos.
+        foreach ((array) $request->input('documents', []) as $i => $row) {
+            $kind = $row['kind'] ?? null;
+            $request->validate(
+                ["documents.$i.file" => ['mimes:' . ContractorDocument::mimesFor($kind)]],
+                ["documents.$i.file.mimes" => $kind === 'cv' ? 'Use a PDF, DOC or DOCX file for the CV.' : 'Use JPG, PNG or PDF files.']
+            );
+        }
 
         $data = $this->cleanContractorData($data);
 
@@ -82,6 +90,12 @@ class PublicJoinController extends Controller
         // A government-approved ID is needed from everyone (the owner's, for a company).
         if (! collect($request->input('documents', []))->contains(fn ($d) => ($d['kind'] ?? null) === 'id')) {
             throw ValidationException::withMessages(['documents' => 'Upload a government-approved photo ID.']);
+        }
+
+        // Individuals also need a CV (a company is not asked for one).
+        if (($data['type'] ?? null) === 'individual'
+            && ! collect($request->input('documents', []))->contains(fn ($d) => ($d['kind'] ?? null) === 'cv')) {
+            throw ValidationException::withMessages(['documents' => 'Upload your CV.']);
         }
 
         $campaign = ! empty($data['ref'])
