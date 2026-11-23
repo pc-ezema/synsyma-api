@@ -135,7 +135,7 @@ class AdminUserController extends Controller
             'first_name' => $u->first_name,
             'last_name' => $u->last_name,
             'full_name' => trim($u->first_name . ' ' . $u->last_name),
-            'photo_url' => $u->photo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($u->photo_path) : null,
+            'photo_url' => $u->profile_photo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($u->profile_photo_path) : null,
             'email' => $u->email,
             'email_verified' => $u->email_verified_at !== null,
             'phone' => $u->phone,
