@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AccessControlController;
 use Modules\Admin\Http\Controllers\AccountDeletionController;
 use Modules\Admin\Http\Controllers\AddressSearchController;
+use Modules\Admin\Http\Controllers\AdminAppVersionController;
 use Modules\Admin\Http\Controllers\AdminBookingController;
 use Modules\Admin\Http\Controllers\AdminBookingPolicyController;
 use Modules\Admin\Http\Controllers\AdminChatController;
@@ -244,6 +245,9 @@ Route::prefix('v1/admin')->group(function () {
         Route::get('settings', [AdminSettingController::class, 'show'])->middleware('permission:settings.view');
         Route::put('settings', [AdminSettingController::class, 'update'])->middleware('permission:settings.manage');
         Route::get('address-search', AddressSearchController::class)->middleware('throttle:120,1');
+
+        Route::get('app-versions', [AdminAppVersionController::class, 'show'])->middleware('permission:settings.view');
+        Route::put('app-versions/{platform}', [AdminAppVersionController::class, 'update'])->middleware('permission:settings.manage');
     });
 
     Route::get('public/login-stats', [PublicStatsController::class, 'loginStats'])->middleware('throttle:30,1');

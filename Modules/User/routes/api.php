@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\User\Http\Controllers\BookingController;
 use Modules\User\Http\Controllers\AddressController;
+use Modules\User\Http\Controllers\AppVersionController;
 use Modules\User\Http\Controllers\BannerController;
 use Modules\User\Http\Controllers\BookingChangeController;
 use Modules\User\Http\Controllers\BookingCompletionController;
@@ -78,3 +79,5 @@ Route::post('v1/webhooks/stripe', [StripeWebhookController::class, 'handle']);
 Route::post('v1/webhooks/paypal', [PayPalController::class, 'webhook']);
 Route::get('v1/paypal/return', [PayPalController::class, 'approved'])->name('paypal.return');
 Route::get('v1/paypal/cancel', [PayPalController::class, 'cancelled'])->name('paypal.cancel');
+
+Route::get('v1/app/version', [AppVersionController::class, 'show']);
